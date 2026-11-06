@@ -3,3 +3,5 @@
 !/.env.example
 /prod.env
 /node_modules
+/postman
+/.postman
