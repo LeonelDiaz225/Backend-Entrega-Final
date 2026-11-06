@@ -1,19 +1,29 @@
 const path = require("path");
 
-require("dotenv").config({
-  path: path.join(
-    __dirname,
-    process.env.NODE_ENV === "production" ? "prod.env" : ".env"
-  ),
-});
+require("./config/env");
 
 const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJSDoc = require("swagger-jsdoc");
-const connectDB = require("./config/db");
+const requestLogger = require("./middleware/requestLogger");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+app.use(helmet());
+app.use(cors());
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  })
+);
+app.use(requestLogger);
 
 // Documentación OpenAPI
 const swaggerSpec = swaggerJSDoc({
@@ -24,6 +34,15 @@ const swaggerSpec = swaggerJSDoc({
       version: "1.0.0",
       description:
         "API REST para administrar productores, técnicos, cultivos, lotes y observaciones agrícolas.",
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
     },
     servers: [{ url: "/", description: "Servidor actual" }],
   },
@@ -42,6 +61,10 @@ app.set("views", path.join(__dirname, "views"));
 // Middlewares para parsear JSON y formularios
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
 // Rutas de la API REST
 const productoresRoutes = require("./routes/productoresRoutes");
@@ -143,28 +166,10 @@ app.get("/vista/lotes/:id", async (req, res) => {
   }
 });
 
-// Manejo de error 404 (Ruta no encontrada)
 app.use((req, res) => {
   res.status(404).json({ error: "Ruta no encontrada" });
 });
 
-// Manejo global de errores (500)
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Error interno del servidor" });
-});
+app.use(errorHandler);
 
-// Iniciar solo después de confirmar la conexión a la base.
-const startServer = async () => {
-  try {
-    await connectDB();
-    app.listen(PORT, () => {
-      console.log(`Servidor de AgroTec corriendo en http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error(`No se pudo iniciar AgroTec: ${error.message}`);
-    process.exitCode = 1;
-  }
-};
-
-startServer();
+module.exports = app;

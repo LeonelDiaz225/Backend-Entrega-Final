@@ -11,9 +11,9 @@
 
 | Recurso               | Enlace                                                                                        |
 | --------------------- | --------------------------------------------------------------------------------------------- |
-| Carpeta de Drive      | [Ver carpeta](https://drive.google.com/drive/folders/1Z3v8PMb-cMc2zyNsraxxvgTTVSLKGVv7?usp=sharing) |
-| Repositorio GitHub    | [Ver repositorio](https://github.com/YohaOlivera/Agrotec_PFO_E2)                              |
-| Video de presentación | [Ver video](https://drive.google.com/file/d/1B-cJJS7ygdv-zDQzH54PMLI8Yo0hKa__/view?usp=sharing)                                                                        |
+| Carpeta de Drive      | [Ver carpeta](https://drive.google.com/drive/folders/15tbDKWcteGK1vAPrlIW_IRnS0gEkEigq?hl=es) |
+| Repositorio GitHub    | [Ver repositorio](https://github.com/LeonelDiaz225/Backend-Entrega-Final.git)                              |
+| Video de presentación | [Ver video](COMPLETAR)                                                                        |
 
 ---
 
@@ -200,8 +200,13 @@ Copy-Item .env.example .env
 Contenido del `.env.example`:
 
 ```
+NODE_ENV=development
 PORT=3000
 MONGO_URI=mongodb://127.0.0.1:27017/agrotec
+MONGO_DB_NAME=agrotec
+JWT_SECRET=replace-with-a-long-random-secret
+JWT_EXPIRES_IN=2h
+MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
 ```
 
 ### 4. Ejecutar el servidor en desarrollo
@@ -264,6 +269,34 @@ npm run seed:prod
 ```
 
 El seed es **idempotente**: puede ejecutarse múltiples veces sin duplicar datos.
+
+### Pruebas automatizadas
+
+La suite usa Jest y Supertest. No requiere una conexión a MongoDB para validar
+el health check, el middleware JWT, los roles y las respuestas 401/403/404:
+
+```bash
+npm test
+```
+
+### Seguridad y autorización
+
+Las contraseñas se almacenan con `bcryptjs`. El login devuelve un JWT firmado
+con `JWT_SECRET`; las rutas de recursos requieren:
+
+```http
+Authorization: Bearer <token>
+```
+
+Los roles disponibles son `admin`, `tecnico` y `productor`. Las operaciones de
+escritura se restringen según el rol definido en cada archivo de `routes/`.
+La API también incorpora Helmet, CORS, limitación básica de solicitudes,
+registro de peticiones y el endpoint `GET /health`.
+
+Para despliegue en Render, configurar `MONGO_URI`, `MONGO_DB_NAME`,
+`JWT_SECRET` y `JWT_EXPIRES_IN` como variables secretas. El archivo
+`render.yaml` define el servicio, el comando de build, el start command y el
+health check.
 
 ---
 
@@ -370,7 +403,10 @@ La aplicación persiste los datos en MongoDB mediante modelos Mongoose. Los arch
 | Método | Endpoint             | Body                                              | Descripción                                    |
 | ------ | -------------------- | ------------------------------------------------- | ---------------------------------------------- |
 | POST   | `/api/auth/register` | `{ username, password, nombre, apellido, email }` | Registra un nuevo usuario                      |
-| POST   | `/api/auth/login`    | `{ username, password }`                          | Inicia sesión y devuelve los datos del usuario |
+| POST   | `/api/auth/login`    | `{ username, password }`                          | Inicia sesión y devuelve un JWT                |
+
+Todas las rutas siguientes requieren autenticación. Para crear, modificar o
+eliminar recursos también se verifica el rol del usuario.
 
 ### Productores — `/api/productores`
 
@@ -762,11 +798,8 @@ Las pruebas se realizaron con **Postman** y **Thunder Client**.
 
 ---
 
-## Próximas mejoras
+## Mejoras futuras
 
-- **Hashing de contraseñas** con `bcrypt` para almacenamiento seguro de credenciales
-- **Autenticación con JWT** y protección de rutas mediante middleware
-- **Roles y autorización** (administrador, productor, técnico)
 - **Módulo de estadísticas y reportes** (métricas por lote, exportación a PDF/Excel)
 - **Geolocalización de lotes** con mapas interactivos
 

@@ -1,4 +1,21 @@
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+
+const createToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET no está configurado");
+  }
+
+  return jwt.sign(
+    {
+      id: user._id.toString(),
+      username: user.username,
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "2h" }
+  );
+};
 
 /**
  * @openapi
@@ -92,6 +109,7 @@ exports.register = async (req, res) => {
       usuario: {
         id: nuevoUsuario._id,
         username: nuevoUsuario.username,
+        role: nuevoUsuario.role,
         nombre: nuevoUsuario.nombre,
         apellido: nuevoUsuario.apellido,
         email: nuevoUsuario.email,
@@ -103,7 +121,7 @@ exports.register = async (req, res) => {
     }
 
     // Cualquier otro error
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: "No se pudo registrar el usuario" });
   }
 };
 
@@ -140,7 +158,7 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ username }).select("+password");
 
     // Verificación
-    if (!user || user.password !== password) {
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
         error: "Usuario o contraseña incorrectos",
       });
@@ -148,9 +166,11 @@ exports.login = async (req, res) => {
 
     res.status(200).json({
       mensaje: "Inicio de sesión exitoso",
+      token: createToken(user),
       usuario: {
         id: user._id,
         username: user.username,
+        role: user.role,
         nombre: user.nombre,
         apellido: user.apellido,
         email: user.email,

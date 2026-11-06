@@ -2,7 +2,9 @@ const dns = require("dns");
 
 module.exports = function configureMongoDns() {
     try {
-        const dnsServers = process.env.DNS_SERVERS ? process.env.DNS_SERVERS.split(",") : ["8.8.8.8", "1.1.1.1"];
+        const dnsServers = process.env.MONGO_DNS_SERVERS
+            ? process.env.MONGO_DNS_SERVERS.split(",").map((server) => server.trim())
+            : ["8.8.8.8", "1.1.1.1"];
         
         dns.setServers(dnsServers);
     } catch (error) {
