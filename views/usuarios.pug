@@ -65,6 +65,15 @@ block content
             option(value="productor") Productor
             option(value="admin") Administrador
 
+        .form-field#productorField(style="display: none;")
+          label(for="id_productor") Productor asociado
+
+          select#id_productor(name="id_productor")
+            option(value="") Seleccionar productor
+
+            each productor in productores
+              option(value=productor._id)= productor.nombre + " " + productor.apellido
+
       button.btn.btn-primary(type="submit") Crear usuario
 
   section.panel
@@ -90,3 +99,8 @@ block content
                 td= usuario.role
     else
       p.empty-state No hay usuarios registrados.
+
+
+  block scripts
+    script(src="/js/usuarios.js" defer)
+

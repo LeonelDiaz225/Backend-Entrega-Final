@@ -40,6 +40,15 @@ const userSchema = new mongoose.Schema(
             enum: ["admin", "tecnico", "productor"],
             default: "tecnico",
         },
+
+        id_productor: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Productor",
+            default: null,
+            required: function () {
+                return this.role === "productor";
+            }
+        },
     },
     {
         timestamps: true,

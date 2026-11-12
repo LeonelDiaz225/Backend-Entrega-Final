@@ -161,19 +161,29 @@ app.get("/vista/tipos-cultivo", authenticateWeb, async (req, res) => {
   }
 });
 
-app.get(
-  "/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
+
+app.get("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
+      // Obtener usuarios registrados
       const usuarios = await User.find();
 
+      // Obtener productores registrados
+      const productores = await Productor.find()
+        .sort({ apellido: 1, nombre: 1 });
+
+      // Enviar los datos a la vista Pug
       res.render("usuarios", {
         title: "Listado de Usuarios",
         usuarios,
+        productores,
         creado: req.query.creado === "1"
       });
 
     } catch (error) {
-      console.error("Error al cargar usuarios:", error.message);
+      console.error(
+        "Error al cargar usuarios:",
+        error.message
+      );
 
       res.status(500).send(
         "Error al cargar la vista de usuarios"
@@ -183,20 +193,16 @@ app.get(
 );
 
 
-
 app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
-      
-      // 1. Comprobar el origen del formulario
+      // 1. Comprobar el origen de la solicitud
       const origin = req.get("origin");
       const fetchSite = req.get("sec-fetch-site");
 
-      // Rechazar solicitudes identificadas como externas
       if (fetchSite && fetchSite !== "same-origin") {
         return res.status(403).send("Origen no permitido");
       }
 
-      // Validar el Origin cuando contiene una URL real
       if (origin && origin !== "null") {
         let originURL;
 
@@ -211,31 +217,32 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
         }
       }
 
-      // Para Origin null o ausente, exigir same-origin
-      if ((!origin || origin === "null") &&
-          fetchSite !== "same-origin") {
+      if (
+        (!origin || origin === "null") &&
+        fetchSite !== "same-origin"
+      ) {
         return res.status(403).send("Origen no verificable");
       }
 
-
-      // 2. Verificar que el administrador siga existiendo
+      // 2. Comprobar que el administrador siga autorizado
       const adminActual = await User.findById(req.user.id);
 
       if (!adminActual || adminActual.role !== "admin") {
         return res.status(403).send("Permisos insuficientes");
       }
 
-      // 3. Obtener los datos del formulario
+      // 3. Obtener los campos del formulario
       const {
         username,
         password,
         nombre,
         apellido,
         email,
-        role
+        role,
+        id_productor
       } = req.body;
 
-      // 4. Validar que los campos estén completos
+      // 4. Validar los campos obligatorios
       if (
         !username ||
         !password ||
@@ -247,7 +254,7 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
         throw new Error("Todos los campos son obligatorios");
       }
 
-      // 5. Validar el rol seleccionado
+      // 5. Validar el rol
       const rolesValidos = ["admin", "tecnico", "productor"];
 
       if (!rolesValidos.includes(role)) {
@@ -261,17 +268,68 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
         );
       }
 
-      // 7. Crear el usuario en MongoDB
-      await User.create({
+      // 7. Preparar los datos del usuario
+      const datosUsuario = {
         username: username.trim().toLowerCase(),
         password,
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         email: email.trim().toLowerCase(),
         role
-      });
+      };
 
-      // 8. Redirigir al listado de usuarios
+      // 8. Asociar un productor cuando corresponda
+      if (role === "productor") {
+
+        if (!id_productor) {
+          throw new Error(
+            "Debes seleccionar un productor asociado"
+          );
+        }
+
+        // Verificar el formato del identificador
+        const mongoose = require("mongoose");
+
+        if (!mongoose.isObjectIdOrHexString(id_productor)) {
+          throw new Error(
+            "El identificador del productor no es válido"
+          );
+        }
+
+        // Comprobar que exista en MongoDB
+        const productorExiste = await Productor.exists({
+          _id: id_productor
+        });
+
+        if (!productorExiste) {
+          throw new Error(
+            "El productor seleccionado no existe"
+          );
+        }
+
+        // Evitar dos cuentas para el mismo productor
+        const cuentaExistente = await User.exists({
+          id_productor: id_productor
+        });
+
+        if (cuentaExistente) {
+          throw new Error(
+            "Este productor ya tiene una cuenta asociada"
+          );
+        }
+
+        // Guardar la asociación
+        datosUsuario.id_productor = id_productor;
+
+      } else {
+        // Administradores y técnicos no tienen productor
+        datosUsuario.id_productor = null;
+      }
+
+      // 9. Crear el usuario en MongoDB
+      await User.create(datosUsuario);
+
+      // 10. Mostrar confirmación
       return res.redirect("/vista/usuarios?creado=1");
 
     } catch (error) {
@@ -286,24 +344,28 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
         mensaje = "El usuario o correo ya está registrado";
       }
 
-      // Volver a mostrar el formulario con el error
+      // Recuperar datos para volver a mostrar el formulario
       try {
         const usuarios = await User.find();
+
+        const productores = await Productor.find()
+          .sort({ apellido: 1, nombre: 1 });
 
         return res.status(400).render("usuarios", {
           title: "Listado de Usuarios",
           usuarios,
+          productores,
           error: mensaje
         });
 
       } catch (dbError) {
         console.error(
-          "Error al cargar usuarios:",
+          "Error al cargar el formulario:",
           dbError.message
         );
 
         return res.status(500).send(
-          "Error al cargar el listado de usuarios"
+          "No se pudo cargar el formulario de usuarios"
         );
       }
     }
