@@ -1,35 +1,24 @@
-doctype html
-html(lang="es")
-  head
-    meta(charset="UTF-8")
-    meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title= title
-  body
-    h1= title
-    a(href="/") Volver al Inicio
-    hr
-    nav
-      a(href="/vista/lotes") Lotes
-      |  |
-      a(href="/vista/productores") Productores
-      |  |
-      a(href="/vista/tecnicos") Técnicos
-      |  |
-      a(href="/vista/tipos-cultivo") Tipos de cultivo
+extends layout
+
+block content
+  h1.page-title= title
+  p.subtitle Cuentas registradas en AgroTec.
+  section.panel
     if usuarios.length > 0
-      table(border="1", cellpadding="5")
-        thead
-          tr
-            th Usuario
-            th Nombre
-            th Apellido
-            th Email
-        tbody
-          each usuario in usuarios
+      .table-wrap
+        table.data-table
+          thead
             tr
-              td= usuario.username
-              td= usuario.nombre
-              td= usuario.apellido
-              td= usuario.email
+              th Usuario
+              th Nombre
+              th Apellido
+              th Email
+          tbody
+            each usuario in usuarios
+              tr
+                td= usuario.username
+                td= usuario.nombre
+                td= usuario.apellido
+                td= usuario.email
     else
-      p No hay usuarios registrados.
+      p.empty-state No hay usuarios registrados.

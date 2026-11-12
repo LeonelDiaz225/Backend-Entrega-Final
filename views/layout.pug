@@ -1,0 +1,24 @@
+doctype html
+html(lang="es")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title= title || 'AgroTec'
+    link(rel="stylesheet", href="/css/styles.css")
+  body
+    header.site-header
+      .header-inner
+        a.brand(href="/") 🌱 AgroTec
+        nav.main-nav(aria-label="Menú principal")
+          a(href="/") Inicio
+          a(href="/vista/lotes") Lotes
+          a(href="/vista/productores") Productores
+          a(href="/vista/tecnicos") Técnicos
+          a(href="/vista/tipos-cultivo") Cultivos
+          a(href="/vista/usuarios") Usuarios
+        form.logout-form(action="/logout", method="POST")
+          button.btn.btn-light(type="submit") Cerrar sesión
+    main.page
+      block content
+    footer.site-footer
+      p AgroTec · Sistema de Monitoreo Agrícola

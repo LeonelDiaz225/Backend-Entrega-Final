@@ -12,7 +12,7 @@ const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
-
+app.use(express.static(path.join(__dirname, "public")));
 app.use(helmet());
 app.use(cors());
 app.use(
@@ -97,6 +97,18 @@ app.get("/login", (req, res) => {
 const authController = require("./controllers/authController");
 
 app.post("/login", authController.loginWeb);
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("agrotec_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  });
+
+  return res.redirect("/login");
+});
+
+
 const authenticateWeb = require("./middleware/authWeb");
 
 app.get("/", authenticateWeb, (req, res) => {
@@ -107,7 +119,7 @@ app.get("/", authenticateWeb, (req, res) => {
 });
 
 
-app.get("/vista/lotes", async (req, res) => {
+app.get("/vista/lotes", authenticateWeb, async (req, res) => {
   try {
     const lotes = await Lote.find().populate("id_productor");
     res.render("lotes", { title: "Listado de Lotes", lotes });
@@ -116,7 +128,7 @@ app.get("/vista/lotes", async (req, res) => {
   }
 });
 
-app.get("/vista/productores", async (req, res) => {
+app.get("/vista/productores", authenticateWeb, async (req, res) => {
   try {
     const productores = await Productor.find();
     res.render("productores", { title: "Listado de Productores", productores });
@@ -125,7 +137,7 @@ app.get("/vista/productores", async (req, res) => {
   }
 });
 
-app.get("/vista/tecnicos", async (req, res) => {
+app.get("/vista/tecnicos", authenticateWeb, async (req, res) => {
   try {
     const tecnicos = await Tecnico.find();
     res.render("tecnicos", { title: "Listado de Técnicos", tecnicos });
@@ -134,7 +146,7 @@ app.get("/vista/tecnicos", async (req, res) => {
   }
 });
 
-app.get("/vista/tipos-cultivo", async (req, res) => {
+app.get("/vista/tipos-cultivo", authenticateWeb, async (req, res) => {
   try {
     const tiposCultivo = await TipoCultivo.find();
     res.render("tipos_cultivo", {
@@ -146,7 +158,7 @@ app.get("/vista/tipos-cultivo", async (req, res) => {
   }
 });
 
-app.get("/vista/usuarios", async (req, res) => {
+app.get("/vista/usuarios", authenticateWeb, async (req, res) => {
   try {
     const usuarios = await User.find();
     res.render("usuarios", { title: "Listado de Usuarios", usuarios });
@@ -155,7 +167,7 @@ app.get("/vista/usuarios", async (req, res) => {
   }
 });
 
-app.get("/vista/lotes/:id", async (req, res) => {
+app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
   try {
     const lote = await Lote.findById(req.params.id).populate("id_productor");
     if (!lote) {

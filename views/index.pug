@@ -1,29 +1,41 @@
-doctype html
-html(lang="es")
-  head
-    meta(charset="UTF-8")
-    meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title= title
-  body
-    h1= message
-    p Estado del sistema: Operativo.
-    h2 Vistas disponibles
-    ul
-      li
-        a(href="/vista/lotes") Ver Lotes
-      li
-        a(href="/vista/productores") Ver Productores
-      li
-        a(href="/vista/tecnicos") Ver Técnicos
-      li
-        a(href="/vista/tipos-cultivo") Ver Tipos de Cultivo
-      li
-        a(href="/vista/usuarios") Ver Usuarios
+extends layout
+
+block content
+  section.panel
+    h1.page-title Panel de administración
+    p.subtitle= message || 'Bienvenido al Sistema de Monitoreo Agrícola AgroTec.'
+    p Desde aquí puedes acceder a los módulos disponibles del sistema.
+    span.status ● Sistema operativo
+
+  h2.section-title Módulos del sistema
+  section.cards
+    a.card(href="/vista/lotes")
+      .card-icon 🌾
+      h3 Lotes
+      p Consulta los lotes agrícolas y su historial de observaciones.
+    a.card(href="/vista/productores")
+      .card-icon 👨‍🌾
+      h3 Productores
+      p Consulta productores y establecimientos registrados.
+    a.card(href="/vista/tecnicos")
+      .card-icon 🛠️
+      h3 Técnicos
+      p Consulta los técnicos responsables del seguimiento.
+    a.card(href="/vista/tipos-cultivo")
+      .card-icon 🌱
+      h3 Tipos de cultivo
+      p Revisa el catálogo de cultivos registrados.
+    a.card(href="/vista/usuarios")
+      .card-icon 👥
+      h3 Usuarios
+      p Consulta las cuentas de acceso del sistema.
+
+  section.panel
     h2 API REST
-    p API REST disponible en:
-    ul
-      li /api/productores
-      li /api/lotes
-      li /api/observaciones
-      li /api/tecnicos
-      li /api/tipos-cultivo
+    p.subtitle Endpoints disponibles para clientes autorizados de la API.
+    .tags
+      span.tag /api/lotes
+      span.tag /api/productores
+      span.tag /api/tecnicos
+      span.tag /api/tipos-cultivo
+      span.tag /api/observaciones
