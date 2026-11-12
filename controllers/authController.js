@@ -182,3 +182,44 @@ exports.login = async (req, res) => {
     });
   }
 };
+
+
+exports.loginWeb = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).render("login", {
+        error: "Debes ingresar usuario y contraseña"
+      });
+    }
+
+    const user = await User.findOne({
+      username: username.trim().toLowerCase()
+    }).select("+password");
+
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).render("login", {
+        error: "Usuario o contraseña incorrectos"
+      });
+    }
+
+    const token = createToken(user);
+
+    res.cookie("agrotec_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 2 * 60 * 60 * 1000
+    });
+
+    return res.redirect("/");
+
+  } catch (error) {
+    console.error("Error en login web:", error.message);
+
+    return res.status(500).render("login", {
+      error: "No se pudo iniciar sesión"
+    });
+  }
+};

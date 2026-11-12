@@ -89,12 +89,23 @@ const Tecnico = require("./models/Tecnico");
 const TipoCultivo = require("./models/TipoCultivo");
 const User = require("./models/User");
 
-app.get("/", (req, res) => {
+
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+
+const authController = require("./controllers/authController");
+
+app.post("/login", authController.loginWeb);
+const authenticateWeb = require("./middleware/authWeb");
+
+app.get("/", authenticateWeb, (req, res) => {
   res.render("index", {
     title: "AgroTec",
     message: "Bienvenido al Sistema de Monitoreo Agrícola AgroTec",
   });
 });
+
 
 app.get("/vista/lotes", async (req, res) => {
   try {
