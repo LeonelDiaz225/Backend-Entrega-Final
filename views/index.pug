@@ -35,10 +35,10 @@ block content
       .card-icon 🌱
       h3 Tipos de cultivo
       p Revisa el catálogo de cultivos registrados.
-    a.card(href="/vista/usuarios")
-      .card-icon 👥
-      h3 Usuarios
-      p Consulta las cuentas de acceso del sistema.
+    if usuarioActual && usuarioActual.role === "admin"
+      a.card(href="/vista/usuarios")
+        h3 Usuarios
+        p Consulta las cuentas registradas en AgroTec.
 
   section.panel
     h2 API REST

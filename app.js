@@ -186,13 +186,18 @@ app.get(
 
 app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
+      
       // 1. Comprobar el origen del formulario
       const origin = req.get("origin");
+      const fetchSite = req.get("sec-fetch-site");
 
-      console.log("Origin recibido:", JSON.stringify(req.get("origin")));
-      console.log("Referer recibido:", JSON.stringify(req.get("referer")));
+      // Rechazar solicitudes identificadas como externas
+      if (fetchSite && fetchSite !== "same-origin") {
+        return res.status(403).send("Origen no permitido");
+      }
 
-      if (origin) {
+      // Validar el Origin cuando contiene una URL real
+      if (origin && origin !== "null") {
         let originURL;
 
         try {
@@ -205,6 +210,13 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
           return res.status(403).send("Origen no permitido");
         }
       }
+
+      // Para Origin null o ausente, exigir same-origin
+      if ((!origin || origin === "null") &&
+          fetchSite !== "same-origin") {
+        return res.status(403).send("Origen no verificable");
+      }
+
 
       // 2. Verificar que el administrador siga existiendo
       const adminActual = await User.findById(req.user.id);

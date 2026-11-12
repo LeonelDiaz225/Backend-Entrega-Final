@@ -15,7 +15,8 @@ html(lang="es")
           a(href="/vista/productores") Productores
           a(href="/vista/tecnicos") Técnicos
           a(href="/vista/tipos-cultivo") Cultivos
-          a(href="/vista/usuarios") Usuarios
+          if usuarioActual && usuarioActual.role === "admin"
+            a(href="/vista/usuarios") Usuarios
         form.logout-form(action="/logout", method="POST")
           button.btn.btn-light(type="submit") Cerrar sesión
     main.page
