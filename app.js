@@ -131,7 +131,7 @@ app.get("/vista/lotes", authenticateWeb, async (req, res) => {
   }
 });
 
-app.get("/vista/productores", authenticateWeb, async (req, res) => {
+app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const productores = await Productor.find();
     res.render("productores", { title: "Listado de Productores", productores });
@@ -140,7 +140,7 @@ app.get("/vista/productores", authenticateWeb, async (req, res) => {
   }
 });
 
-app.get("/vista/tecnicos", authenticateWeb, async (req, res) => {
+app.get("/vista/tecnicos", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const tecnicos = await Tecnico.find();
     res.render("tecnicos", { title: "Listado de Técnicos", tecnicos });
@@ -149,7 +149,7 @@ app.get("/vista/tecnicos", authenticateWeb, async (req, res) => {
   }
 });
 
-app.get("/vista/tipos-cultivo", authenticateWeb, async (req, res) => {
+app.get("/vista/tipos-cultivo", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const tiposCultivo = await TipoCultivo.find();
     res.render("tipos_cultivo", {

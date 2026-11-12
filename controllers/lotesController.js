@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Lote = require("../models/Lote");
 const Productor = require("../models/Productor");
 const Observacion = require("../models/Observacion");
+const User = require("../models/User");
 
 /**
  * @openapi
@@ -81,37 +82,84 @@ const Observacion = require("../models/Observacion");
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+
 exports.getAll = async (req, res) => {
   try {
     const { alerta } = req.query;
 
-    if (alerta) {
-      const alertasValidas = ["Normal", "Atención", "Crítico"];
-      if (!alertasValidas.includes(alerta)) {
-        return res.status(400).json({
-          error: 'Nivel de alerta inválido. Debe ser "Normal", "Atención" o "Crítico"',
+    const filtro = {};
+
+    // 1. Si es productor, buscar su asociación
+    if (req.user.role === "productor") {
+
+      const usuario = await User.findById(req.user.id)
+        .select("role id_productor");
+
+      if (
+        !usuario ||
+        usuario.role !== "productor" ||
+        !usuario.id_productor
+      ) {
+        return res.status(403).json({
+          error: "No tienes un productor asociado"
         });
       }
 
-      // Buscar observaciones activas con ese nivel de alerta
-      const observacionesConAlerta = await Observacion.find({
-        nivel_alerta: alerta,
-        activa: true,
-      }).select("id_lote");
-
-      const idsLotes = observacionesConAlerta.map((obs) => obs.id_lote);
-
-      // Traer los lotes correspondientes sin duplicados
-      const lotes = await Lote.find({ _id: { $in: idsLotes } }).populate("id_productor");
-      return res.status(200).json(lotes);
+      // Limitar la consulta a sus propios lotes
+      filtro.id_productor = usuario.id_productor;
     }
 
-    const lotes = await Lote.find().populate("id_productor");
-    res.status(200).json(lotes);
+    // 2. Validar el filtro de alertas
+    if (alerta) {
+      const alertasValidas = [
+        "Normal",
+        "Atención",
+        "Crítico"
+      ];
+
+      if (!alertasValidas.includes(alerta)) {
+        return res.status(400).json({
+          error: "Nivel de alerta inválido"
+        });
+      }
+
+      // Obtener lotes con observaciones activas
+      const observaciones = await Observacion.find({
+        nivel_alerta: alerta,
+        activa: true
+      }).select("id_lote");
+
+      const idsLotes = observaciones.map(
+        obs => obs.id_lote
+      );
+
+      // Combinar con el filtro de propietario
+      filtro._id = { $in: idsLotes };
+    }
+
+    // 3. Consultar lotes según los permisos
+    let consulta = Lote.find(filtro);
+
+    if (req.user.role !== "productor") {
+      consulta = consulta.populate("id_productor");
+    }
+
+    const lotes = await consulta;
+
+    return res.status(200).json(lotes);
+
   } catch (error) {
-    res.status(500).json({ error: "Error al obtener lotes" });
+    console.error(
+      "Error al obtener lotes:",
+      error.message
+    );
+
+    return res.status(500).json({
+      error: "Error al obtener lotes"
+    });
   }
 };
+
 
 /**
  * @openapi

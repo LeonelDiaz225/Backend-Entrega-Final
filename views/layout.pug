@@ -14,9 +14,10 @@ html(lang="es")
         nav.main-nav(aria-label="Menú principal")
           a(href="/") Inicio
           a(href="/vista/lotes") Lotes
-          a(href="/vista/productores") Productores
-          a(href="/vista/tecnicos") Técnicos
-          a(href="/vista/tipos-cultivo") Cultivos
+          if usuarioActual && ["admin", "tecnico"].includes(usuarioActual.role)
+            a(href="/vista/productores") Productores
+            a(href="/vista/tecnicos") Técnicos
+            a(href="/vista/tipos-cultivo") Cultivos
 
           if usuarioActual && usuarioActual.role === "admin"
             a(href="/vista/usuarios") Usuarios

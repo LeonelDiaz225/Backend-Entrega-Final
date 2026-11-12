@@ -23,18 +23,21 @@ block content
       .card-icon 🌾
       h3 Lotes
       p Consulta los lotes agrícolas y su historial de observaciones.
-    a.card(href="/vista/productores")
-      .card-icon 👨‍🌾
-      h3 Productores
-      p Consulta productores y establecimientos registrados.
-    a.card(href="/vista/tecnicos")
-      .card-icon 🛠️
-      h3 Técnicos
-      p Consulta los técnicos responsables del seguimiento.
-    a.card(href="/vista/tipos-cultivo")
-      .card-icon 🌱
-      h3 Tipos de cultivo
-      p Revisa el catálogo de cultivos registrados.
+    
+    if usuarioActual && ["admin", "tecnico"].includes(usuarioActual.role)
+      a.card(href="/vista/productores")
+        .card-icon 👨‍🌾
+        h3 Productores
+        p Consulta productores y establecimientos registrados.
+      a.card(href="/vista/tecnicos")
+        .card-icon 🛠️
+        h3 Técnicos
+        p Consulta los técnicos responsables del seguimiento.
+      a.card(href="/vista/tipos-cultivo")
+        .card-icon 🌱
+        h3 Tipos de cultivo
+        p Revisa el catálogo de cultivos registrados.
+    
     if usuarioActual && usuarioActual.role === "admin"
       a.card(href="/vista/usuarios")
         h3 Usuarios

@@ -4,8 +4,11 @@ const controller = require("../controllers/tiposCultivoController");
 const { authenticate, authorize } = require("../middleware/auth");
 
 router.use(authenticate);
-router.get("/", controller.getAll);
-router.get("/:id", controller.getById);
+
+router.get("/", authorize("admin", "tecnico"), controller.getAll);
+
+router.get("/:id", authorize("admin", "tecnico"), controller.getById);
+
 router.post("/", authorize("admin"), controller.create);
 router.put("/:id", authorize("admin"), controller.update);
 router.delete("/:id", authorize("admin"), controller.delete);
