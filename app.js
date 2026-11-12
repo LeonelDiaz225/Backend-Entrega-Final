@@ -111,6 +111,9 @@ app.post("/logout", (req, res) => {
 
 const authenticateWeb = require("./middleware/authWeb");
 
+const authorizeWeb = require("./middleware/authorizeWeb");
+
+
 app.get("/", authenticateWeb, (req, res) => {
   res.render("index", {
     title: "AgroTec",
@@ -158,14 +161,143 @@ app.get("/vista/tipos-cultivo", authenticateWeb, async (req, res) => {
   }
 });
 
-app.get("/vista/usuarios", authenticateWeb, async (req, res) => {
-  try {
-    const usuarios = await User.find();
-    res.render("usuarios", { title: "Listado de Usuarios", usuarios });
-  } catch (error) {
-    res.status(500).send("Error al cargar la vista de usuarios");
+app.get(
+  "/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
+    try {
+      const usuarios = await User.find();
+
+      res.render("usuarios", {
+        title: "Listado de Usuarios",
+        usuarios,
+        creado: req.query.creado === "1"
+      });
+
+    } catch (error) {
+      console.error("Error al cargar usuarios:", error.message);
+
+      res.status(500).send(
+        "Error al cargar la vista de usuarios"
+      );
+    }
   }
-});
+);
+
+
+
+app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
+    try {
+      // 1. Comprobar el origen del formulario
+      const origin = req.get("origin");
+
+      console.log("Origin recibido:", JSON.stringify(req.get("origin")));
+      console.log("Referer recibido:", JSON.stringify(req.get("referer")));
+
+      if (origin) {
+        let originURL;
+
+        try {
+          originURL = new URL(origin);
+        } catch {
+          return res.status(403).send("Origen no válido");
+        }
+
+        if (originURL.host !== req.get("host")) {
+          return res.status(403).send("Origen no permitido");
+        }
+      }
+
+      // 2. Verificar que el administrador siga existiendo
+      const adminActual = await User.findById(req.user.id);
+
+      if (!adminActual || adminActual.role !== "admin") {
+        return res.status(403).send("Permisos insuficientes");
+      }
+
+      // 3. Obtener los datos del formulario
+      const {
+        username,
+        password,
+        nombre,
+        apellido,
+        email,
+        role
+      } = req.body;
+
+      // 4. Validar que los campos estén completos
+      if (
+        !username ||
+        !password ||
+        !nombre ||
+        !apellido ||
+        !email ||
+        !role
+      ) {
+        throw new Error("Todos los campos son obligatorios");
+      }
+
+      // 5. Validar el rol seleccionado
+      const rolesValidos = ["admin", "tecnico", "productor"];
+
+      if (!rolesValidos.includes(role)) {
+        throw new Error("El rol seleccionado no es válido");
+      }
+
+      // 6. Validar la contraseña
+      if (password.length < 12) {
+        throw new Error(
+          "La contraseña debe tener al menos 12 caracteres"
+        );
+      }
+
+      // 7. Crear el usuario en MongoDB
+      await User.create({
+        username: username.trim().toLowerCase(),
+        password,
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        email: email.trim().toLowerCase(),
+        role
+      });
+
+      // 8. Redirigir al listado de usuarios
+      return res.redirect("/vista/usuarios?creado=1");
+
+    } catch (error) {
+      console.error(
+        "Error al crear usuario:",
+        error.message
+      );
+
+      let mensaje = error.message;
+
+      if (error.code === 11000) {
+        mensaje = "El usuario o correo ya está registrado";
+      }
+
+      // Volver a mostrar el formulario con el error
+      try {
+        const usuarios = await User.find();
+
+        return res.status(400).render("usuarios", {
+          title: "Listado de Usuarios",
+          usuarios,
+          error: mensaje
+        });
+
+      } catch (dbError) {
+        console.error(
+          "Error al cargar usuarios:",
+          dbError.message
+        );
+
+        return res.status(500).send(
+          "Error al cargar el listado de usuarios"
+        );
+      }
+    }
+  }
+);
+
 
 app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
   try {

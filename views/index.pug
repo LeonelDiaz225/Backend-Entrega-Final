@@ -7,6 +7,16 @@ block content
     p Desde aquí puedes acceder a los módulos disponibles del sistema.
     span.status ● Sistema operativo
 
+    if usuarioActual
+      p
+        strong Usuario:
+        |  #{usuarioActual.username}
+
+      p
+        strong Rol:
+        |  #{usuarioActual.role}
+
+
   h2.section-title Módulos del sistema
   section.cards
     a.card(href="/vista/lotes")

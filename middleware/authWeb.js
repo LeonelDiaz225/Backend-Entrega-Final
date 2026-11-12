@@ -29,6 +29,13 @@ const authenticateWeb = (req, res, next) => {
     // en las siguientes funciones
     req.user = decoded;
 
+// Compartir los datos del usuario con las vistas Pug
+    res.locals.usuarioActual = {
+      id: decoded.id,
+      username: decoded.username,
+      role: decoded.role
+    };
+
     next();
 
   } catch (error) {

@@ -2,8 +2,74 @@ extends layout
 
 block content
   h1.page-title= title
-  p.subtitle Cuentas registradas en AgroTec.
+  p.subtitle Administración de cuentas de AgroTec.
+
   section.panel
+    h2 Crear nuevo usuario
+
+    if error
+      p.form-error= error
+
+    if creado
+      p.form-success Usuario creado correctamente.
+
+    form(action="/vista/usuarios" method="POST")
+      .form-grid
+        .form-field
+          label(for="username") Nombre de usuario
+          input#username(
+            type="text"
+            name="username"
+            minlength="3"
+            required
+          )
+
+        .form-field
+          label(for="nombre") Nombre
+          input#nombre(
+            type="text"
+            name="nombre"
+            required
+          )
+
+        .form-field
+          label(for="apellido") Apellido
+          input#apellido(
+            type="text"
+            name="apellido"
+            required
+          )
+
+        .form-field
+          label(for="email") Correo electrónico
+          input#email(
+            type="email"
+            name="email"
+            required
+          )
+
+        .form-field
+          label(for="password") Contraseña
+          input#password(
+            type="password"
+            name="password"
+            minlength="12"
+            autocomplete="new-password"
+            required
+          )
+
+        .form-field
+          label(for="role") Rol
+          select#role(name="role" required)
+            option(value="tecnico") Técnico
+            option(value="productor") Productor
+            option(value="admin") Administrador
+
+      button.btn.btn-primary(type="submit") Crear usuario
+
+  section.panel
+    h2 Usuarios registrados
+
     if usuarios.length > 0
       .table-wrap
         table.data-table
@@ -13,6 +79,7 @@ block content
               th Nombre
               th Apellido
               th Email
+              th Rol
           tbody
             each usuario in usuarios
               tr
@@ -20,5 +87,6 @@ block content
                 td= usuario.nombre
                 td= usuario.apellido
                 td= usuario.email
+                td= usuario.role
     else
       p.empty-state No hay usuarios registrados.
