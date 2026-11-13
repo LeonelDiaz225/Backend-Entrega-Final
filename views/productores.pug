@@ -3,6 +3,45 @@ extends layout
 block content
   h1.page-title= title
   p.subtitle Productores y establecimientos registrados.
+
+  if creado
+    p.success-message Productor y cuenta de usuario creados correctamente.
+
+
+  if rolUsuario === "admin"
+    section.panel
+      h2 Registrar nuevo productor
+      p Completa los datos del productor y su cuenta de acceso.
+
+      form.form-productor(method="POST", action="/vista/productores")
+        h3 Datos del productor
+
+        label(for="nombre") Nombre
+        input#nombre(type="text", name="nombre", required)
+
+        label(for="apellido") Apellido
+        input#apellido(type="text", name="apellido", required)
+
+        label(for="establecimiento") Establecimiento
+        input#establecimiento(type="text", name="establecimiento", required)
+
+        label(for="telefono") Teléfono
+        input#telefono(type="text", name="telefono")
+
+        label(for="email") Correo electrónico
+        input#email(type="email", name="email", required)
+
+        h3 Datos de acceso
+
+        label(for="username") Nombre de usuario
+        input#username(type="text", name="username", required)
+
+        label(for="password") Contraseña
+        input#password(type="password", name="password", minlength="8", required)
+
+        button(type="submit") Registrar productor
+
+
   section.panel
     if productores.length > 0
       .table-wrap

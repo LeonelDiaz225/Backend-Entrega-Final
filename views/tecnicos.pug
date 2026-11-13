@@ -3,6 +3,40 @@ extends layout
 block content
   h1.page-title= title
   p.subtitle Técnicos que realizan el seguimiento de cultivos.
+
+  if rolUsuario === "admin"
+    section.panel
+      h2 Registrar nuevo técnico
+      p Completa los datos del técnico y su cuenta de acceso.
+
+      form.form-productor(method="POST", action="/vista/tecnicos")
+        h3 Datos del técnico
+
+        label(for="nombre") Nombre
+        input#nombre(type="text", name="nombre", required)
+
+        label(for="apellido") Apellido
+        input#apellido(type="text", name="apellido", required)
+
+        label(for="especialidad") Especialidad
+        input#especialidad(type="text", name="especialidad")
+
+        label(for="telefono") Teléfono
+        input#telefono(type="text", name="telefono")
+
+        label(for="email") Correo electrónico
+        input#email(type="email", name="email", required)
+
+        h3 Datos de acceso
+
+        label(for="username") Nombre de usuario
+        input#username(type="text", name="username", required)
+
+        label(for="password") Contraseña
+        input#password(type="password", name="password", minlength="8", required)
+
+        button(type="submit", disabled) Registrar técnico
+
   section.panel
     if tecnicos.length > 0
       .table-wrap

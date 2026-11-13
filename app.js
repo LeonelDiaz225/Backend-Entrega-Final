@@ -189,11 +189,163 @@ app.get("/vista/lotes", authenticateWeb, async (req, res) => {
 app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const productores = await Productor.find();
-    res.render("productores", { title: "Listado de Productores", productores, rolUsuario: req.user.role });
+    res.render("productores", { title: "Listado de Productores", productores, rolUsuario: req.user.role, creado: req.query.creado === "1" });
   } catch (error) {
     res.status(500).send("Error al cargar la vista de productores");
   }
 });
+
+
+app.post("/vista/productores", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
+    try {
+
+      // Comprobar el origen de la solicitud
+      const origin = req.get("origin");
+      const fetchSite = req.get("sec-fetch-site");
+
+      if (fetchSite && fetchSite !== "same-origin") {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (origin && origin !== "null") {
+        let originURL;
+
+        try {
+          originURL = new URL(origin);
+        } catch {
+          return res.status(403).send("Origen no válido");
+        }
+
+        if (originURL.host !== req.get("host")) {
+          return res.status(403).send("Origen no permitido");
+        }
+      }
+
+      if (
+        (!origin || origin === "null") &&
+        fetchSite !== "same-origin"
+      ) {
+        return res.status(403).send("Origen no verificable");
+      }
+
+      const {
+        nombre,
+        apellido,
+        establecimiento,
+        telefono,
+        email,
+        username,
+        password
+      } = req.body;
+
+      // Comprobar los campos obligatorios
+      if (
+        !nombre?.trim() ||
+        !apellido?.trim() ||
+        !establecimiento?.trim() ||
+        !email?.trim() ||
+        !username?.trim() ||
+        !password
+      ) {
+        return res.status(400).send(
+          "Debes completar todos los campos obligatorios"
+        );
+      }
+
+      // Validar longitud de la contraseña
+      if (password.length < 8) {
+        return res.status(400).send(
+          "La contraseña debe tener al menos 8 caracteres"
+        );
+      }
+
+      // Comprobar si el usuario o correo ya existe
+      const usuarioExistente = await User.findOne({
+        $or: [
+          { username: username.trim().toLowerCase() },
+          { email: email.trim().toLowerCase() }
+        ]
+      });
+
+      if (usuarioExistente) {
+        return res.status(400).send(
+          "El nombre de usuario o correo electrónico ya está registrado"
+        );
+      }
+
+      // Preparar una sesión de MongoDB
+      const session = await mongoose.startSession();
+
+      try {
+
+        await session.withTransaction(async () => {
+
+          // 1. Crear el productor
+          const [nuevoProductor] = await Productor.create(
+            [{
+              nombre: nombre.trim(),
+              apellido: apellido.trim(),
+              establecimiento: establecimiento.trim(),
+              telefono: telefono?.trim() || "",
+              email: email.trim().toLowerCase()
+            }],
+            { session }
+          );
+
+          // 2. Crear su cuenta de acceso
+          await User.create(
+            [{
+              username: username.trim().toLowerCase(),
+              password,
+              nombre: nuevoProductor.nombre,
+              apellido: nuevoProductor.apellido,
+              email: nuevoProductor.email,
+              role: "productor",
+              id_productor: nuevoProductor._id,
+              id_tecnico: null
+            }],
+            { session }
+          );
+
+        });
+
+      } finally {
+        await session.endSession();
+      }
+
+      // Redirigir después de finalizar la transacción
+      return res.redirect("/vista/productores?creado=1");
+
+
+    } catch (error) {
+      console.error(
+        "Error al registrar productor:",
+        error.message
+      );
+
+      // Error por usuario o email duplicado
+      if (error.code === 11000) {
+        return res.status(400).send(
+          "El nombre de usuario o correo electrónico ya está registrado"
+        );
+      }
+
+      // Errores de validación del modelo
+      if (error.name === "ValidationError") {
+        return res.status(400).send(
+          "Datos inválidos: " + error.message
+        );
+      }
+
+      // Otros errores
+      return res.status(500).send(
+        "No se pudo registrar el productor. Intenta nuevamente."
+      );
+    }
+
+  }
+);
+
 
 app.get("/vista/tecnicos", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
