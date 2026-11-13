@@ -222,13 +222,33 @@ app.get("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, r
       // Obtener usuarios registrados
       const usuarios = await User.find();
 
-      // Obtener productores registrados
-      const productores = await Productor.find()
-        .sort({ apellido: 1, nombre: 1 });
+      // Obtener los IDs de productores que ya tienen cuenta
+      const idsConCuenta = usuarios
+        .filter(usuario =>
+          usuario.role === "productor" &&
+          usuario.id_productor
+        )
+        .map(usuario => usuario.id_productor);
+
+      // Obtener solo productores sin cuenta
+      const productores = await Productor.find({
+        _id: { $nin: idsConCuenta }
+      }).sort({ apellido: 1, nombre: 1 });
       
-    
-      const tecnicos = await Tecnico.find()
-        .sort({ apellido: 1, nombre: 1 });
+
+      // Obtener los IDs de técnicos que ya tienen cuenta
+      const idsTecnicosConCuenta = usuarios
+        .filter(usuario =>
+          usuario.role === "tecnico" &&
+          usuario.id_tecnico
+        )
+        .map(usuario => usuario.id_tecnico);
+
+      // Obtener solo técnicos sin cuenta
+      const tecnicos = await Tecnico.find({
+        _id: { $nin: idsTecnicosConCuenta }
+      }).sort({ apellido: 1, nombre: 1 });
+
 
 
       // Enviar los datos a la vista Pug
@@ -362,14 +382,18 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
           );
         }
 
-        // Comprobar que exista en MongoDB
-        const productorExiste = await Productor.exists({
-          _id: id_productor
-        });
+        // Buscar al productor en MongoDB
+        const productorAsociado = await Productor.findById(id_productor);
 
-        if (!productorExiste) {
+        // Comprobar que los datos coincidan con el productor seleccionado
+        if (
+          nombre.trim().toLowerCase() !==
+            productorAsociado.nombre.trim().toLowerCase() ||
+          apellido.trim().toLowerCase() !==
+            productorAsociado.apellido.trim().toLowerCase()
+        ) {
           throw new Error(
-            "El productor seleccionado no existe"
+            "El nombre y apellido deben coincidir con el productor seleccionado"
           );
         }
 
@@ -462,13 +486,35 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
 
       // Recuperar datos para volver a mostrar el formulario
       try {
-        const usuarios = await User.find();
 
-        const productores = await Productor.find()
-          .sort({ apellido: 1, nombre: 1 });
-        
-        const tecnicos = await Tecnico.find()
-          .sort({ apellido: 1, nombre: 1 });
+      const usuarios = await User.find();
+
+      // Productores que ya tienen cuenta
+      const idsProductoresConCuenta = usuarios
+        .filter(usuario =>
+          usuario.role === "productor" &&
+          usuario.id_productor
+        )
+        .map(usuario => usuario.id_productor);
+
+      // Mostrar solo productores sin cuenta
+      const productores = await Productor.find({
+        _id: { $nin: idsProductoresConCuenta }
+      }).sort({ apellido: 1, nombre: 1 });
+
+      // Técnicos que ya tienen cuenta
+      const idsTecnicosConCuenta = usuarios
+        .filter(usuario =>
+          usuario.role === "tecnico" &&
+          usuario.id_tecnico
+        )
+        .map(usuario => usuario.id_tecnico);
+
+      // Mostrar solo técnicos sin cuenta
+      const tecnicos = await Tecnico.find({
+        _id: { $nin: idsTecnicosConCuenta }
+      }).sort({ apellido: 1, nombre: 1 });
+
 
         return res.status(400).render("usuarios", {
           title: "Listado de Usuarios",
