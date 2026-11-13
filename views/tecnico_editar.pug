@@ -1,0 +1,53 @@
+extends layout
+
+block content
+  h1.page-title Editar técnico
+  p.subtitle Modifica la información del técnico seleccionado.
+
+  section.panel
+    h2= tecnico.nombre + " " + tecnico.apellido
+
+    form.form-productor(
+      method="POST"
+      action="/vista/tecnicos/" + tecnico._id + "/editar"
+    )
+      label(for="nombre") Nombre
+      input#nombre(
+        type="text"
+        name="nombre"
+        value=tecnico.nombre
+        required
+      )
+
+      label(for="apellido") Apellido
+      input#apellido(
+        type="text"
+        name="apellido"
+        value=tecnico.apellido
+        required
+      )
+
+      label(for="especialidad") Especialidad
+      input#especialidad(
+        type="text"
+        name="especialidad"
+        value=tecnico.especialidad || ""
+      )
+
+      label(for="telefono") Teléfono
+      input#telefono(
+        type="text"
+        name="telefono"
+        value=tecnico.telefono || ""
+      )
+
+      label(for="email") Correo electrónico
+      input#email(
+        type="email"
+        name="email"
+        value=tecnico.email || ""
+      )
+
+      button.btn.btn-primary(type="submit") Guardar cambios
+
+      a.btn(href="/vista/tecnicos") Cancelar

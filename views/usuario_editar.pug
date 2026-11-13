@@ -1,0 +1,48 @@
+extends layout
+
+block content
+  h1.page-title Editar usuario
+  p.subtitle Modifica los datos de acceso de la cuenta.
+
+  section.panel
+    h2= usuario.nombre + " " + usuario.apellido
+
+    form(action="/vista/usuarios/" + usuario._id + "/editar" method="POST")
+      .form-grid
+        .form-field
+          label(for="username") Nombre de usuario
+          input#username(
+            type="text"
+            name="username"
+            value=usuario.username
+            minlength="3"
+            required
+          )
+
+        .form-field
+          label(for="email") Correo electrónico
+          input#email(
+            type="email"
+            name="email"
+            value=usuario.email
+            required
+          )
+
+        .form-field
+          label(for="password") Nueva contraseña (opcional)
+          input#password(
+            type="password"
+            name="password"
+            minlength="8"
+            autocomplete="new-password"
+          )
+
+        .form-field
+          label Rol actual
+          p= usuario.role
+
+      p Deja la contraseña vacía para conservar la actual.
+
+      button.btn.btn-primary(type="submit") Guardar cambios
+
+      a.btn(href="/vista/usuarios") Cancelar

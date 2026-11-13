@@ -9,6 +9,12 @@ block content
 
     if error
       p.form-error= error
+      
+    if editado
+      p.form-success Usuario modificado correctamente.
+
+    if eliminado
+      p.form-success Cuenta de usuario eliminada correctamente.
 
     if creado
       p.form-success Usuario creado correctamente.
@@ -95,6 +101,7 @@ block content
               th Apellido
               th Email
               th Rol
+              th Acciones
           tbody
             each usuario in usuarios
               tr
@@ -103,6 +110,19 @@ block content
                 td= usuario.apellido
                 td= usuario.email
                 td= usuario.role
+                td
+                  a.btn.btn-primary(
+                    href="/vista/usuarios/" + usuario._id + "/editar"
+                  ) Editar
+
+                  if String(usuario._id) !== String(usuarioActualId)
+                    form(
+                      action="/vista/usuarios/" + usuario._id + "/eliminar"
+                      method="POST"
+                      style="display:inline-block; margin-left:8px;"
+                      onsubmit="return confirm('¿Seguro que deseas eliminar esta cuenta?');"
+                    )
+                      button.btn(type="submit") Eliminar
     else
       p.empty-state No hay usuarios registrados.
 

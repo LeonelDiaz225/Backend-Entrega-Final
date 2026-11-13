@@ -1,0 +1,55 @@
+
+extends layout
+
+block content
+  h1.page-title Editar productor
+  p.subtitle Modifica la información del productor seleccionado.
+
+  section.panel
+    h2= productor.nombre + " " + productor.apellido
+
+    form.form-productor(
+      method="POST"
+      action="/vista/productores/" + productor._id + "/editar"
+    )
+      label(for="nombre") Nombre
+      input#nombre(
+        type="text"
+        name="nombre"
+        value=productor.nombre
+        required
+      )
+
+      label(for="apellido") Apellido
+      input#apellido(
+        type="text"
+        name="apellido"
+        value=productor.apellido
+        required
+      )
+
+      label(for="establecimiento") Establecimiento
+      input#establecimiento(
+        type="text"
+        name="establecimiento"
+        value=productor.establecimiento
+        required
+      )
+
+      label(for="telefono") Teléfono
+      input#telefono(
+        type="text"
+        name="telefono"
+        value=productor.telefono || ""
+      )
+
+      label(for="email") Correo electrónico
+      input#email(
+        type="email"
+        name="email"
+        value=productor.email || ""
+      )
+
+      button.btn.btn-primary(type="submit") Guardar cambios
+
+      a.btn(href="/vista/productores") Cancelar

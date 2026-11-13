@@ -189,7 +189,16 @@ app.get("/vista/lotes", authenticateWeb, async (req, res) => {
 app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const productores = await Productor.find();
-    res.render("productores", { title: "Listado de Productores", productores, rolUsuario: req.user.role, creado: req.query.creado === "1" });
+
+    res.render("productores", {
+      title: "Listado de Productores",
+      productores,
+      rolUsuario: req.user.role,
+      creado: req.query.creado === "1",
+      editado: req.query.editado === "1",
+      eliminado: req.query.eliminado === "1"
+    });
+
   } catch (error) {
     res.status(500).send("Error al cargar la vista de productores");
   }
@@ -347,6 +356,226 @@ app.post("/vista/productores", authenticateWeb, authorizeWeb("admin"), async (re
 );
 
 
+/* ADMINISTRACIÓN DE PRODUCTORES */
+app.get(
+  "/vista/productores/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de productor inválido");
+      }
+
+      const productor = await Productor.findById(req.params.id);
+
+      if (!productor) {
+        return res.status(404).send("Productor no encontrado");
+      }
+
+      return res.render("productor_editar", {
+        title: "Editar productor",
+        productor
+      });
+    } catch (error) {
+      console.error("Error al cargar productor:", error.message);
+      return res.status(500).send("No se pudo cargar el productor");
+    }
+  }
+);
+
+// Guardar modificación
+app.post(
+  "/vista/productores/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de productor inválido");
+      }
+
+      const {
+        nombre,
+        apellido,
+        establecimiento,
+        telefono,
+        email
+      } = req.body;
+
+      if (
+        typeof nombre !== "string" ||
+        !nombre.trim() ||
+        typeof apellido !== "string" ||
+        !apellido.trim() ||
+        typeof establecimiento !== "string" ||
+        typeof telefono !== "string" ||
+        typeof email !== "string" ||
+        (email.trim() &&
+          !/^\S+@\S+\.\S+$/.test(email.trim()))
+      ) {
+        return res.status(400).send(
+          "Datos del productor inválidos"
+        );
+      }
+
+      const datos = {
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        establecimiento: establecimiento.trim(),
+        telefono: telefono.trim(),
+        email: email.trim().toLowerCase()
+      };
+
+      const session = await mongoose.startSession();
+
+      try {
+        await session.withTransaction(async () => {
+          const productor = await Productor.findById(
+            req.params.id
+          ).session(session);
+
+          if (!productor) {
+            const error = new Error("Productor no encontrado");
+            error.status = 404;
+            throw error;
+          }
+
+          const usuario = await User.findOne({
+            id_productor: productor._id
+          }).session(session);
+
+          // Una cuenta de acceso necesita correo electrónico
+          if (usuario && !datos.email) {
+            const error = new Error(
+              "El correo es obligatorio para productores con cuenta"
+            );
+            error.status = 400;
+            throw error;
+          }
+
+          productor.set(datos);
+          await productor.save({ session });
+
+          if (usuario) {
+            usuario.nombre = datos.nombre;
+            usuario.apellido = datos.apellido;
+            usuario.email = datos.email;
+
+            await usuario.save({ session });
+          }
+        });
+      } finally {
+        await session.endSession();
+      }
+
+      return res.redirect("/vista/productores?editado=1");
+
+    } catch (error) {
+      console.error("Error al editar productor:", error.message);
+
+      if (error.status) {
+        return res.status(error.status).send(error.message);
+      }
+
+      if (error.code === 11000) {
+        return res.status(400).send(
+          "El correo ya está registrado en otra cuenta"
+        );
+      }
+
+      if (error.name === "ValidationError") {
+        return res.status(400).send(
+          "Los datos ingresados no son válidos"
+        );
+      }
+
+      return res.status(500).send(
+        "No se pudo modificar el productor"
+      );
+    }
+  }
+);
+
+// Eliminar productor y su cuenta asociada
+app.post(
+  "/vista/productores/:id/eliminar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de productor inválido");
+      }
+
+      const session = await mongoose.startSession();
+
+      try {
+        await session.withTransaction(async () => {
+          const productor = await Productor.findById(
+            req.params.id
+          ).session(session);
+
+          if (!productor) {
+            const error = new Error("Productor no encontrado");
+            error.status = 404;
+            throw error;
+          }
+
+          // Proteger los lotes asociados
+          const tieneLotes = await Lote.exists({
+            id_productor: productor._id
+          }).session(session);
+
+          if (tieneLotes) {
+            const error = new Error(
+              "No puedes eliminar un productor que tiene lotes asociados"
+            );
+            error.status = 409;
+            throw error;
+          }
+
+          // Eliminar la cuenta vinculada, si existe
+          await User.deleteMany(
+            { id_productor: productor._id },
+            { session }
+          );
+
+          // Eliminar la ficha del productor
+          await Productor.deleteOne(
+            { _id: productor._id },
+            { session }
+          );
+        });
+      } finally {
+        await session.endSession();
+      }
+
+      return res.redirect("/vista/productores?eliminado=1");
+
+    } catch (error) {
+      console.error("Error al eliminar productor:", error.message);
+
+      if (error.status) {
+        return res.status(error.status).send(error.message);
+      }
+
+      return res.status(500).send(
+        "No se pudo eliminar el productor"
+      );
+    }
+  }
+);
+
+
 app.get("/vista/tecnicos", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const tecnicos = await Tecnico.find();
@@ -355,7 +584,9 @@ app.get("/vista/tecnicos", authenticateWeb, authorizeWeb("admin", "tecnico"), as
       title: "Listado de Técnicos",
       tecnicos,
       rolUsuario: req.user.role,
-      creado: req.query.creado === "1"
+      creado: req.query.creado === "1",
+      editado: req.query.editado === "1",
+      eliminado: req.query.eliminado === "1"
     });
 
   } catch (error) {
@@ -522,6 +753,223 @@ app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, 
 );
 
 
+/* ADMINISTRACIÓN DE TÉCNICOS */
+// Mostrar formulario de edición
+app.get(
+  "/vista/tecnicos/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de técnico inválido");
+      }
+
+      const tecnico = await Tecnico.findById(req.params.id);
+
+      if (!tecnico) {
+        return res.status(404).send("Técnico no encontrado");
+      }
+
+      return res.render("tecnico_editar", {
+        title: "Editar técnico",
+        tecnico
+      });
+    } catch (error) {
+      console.error("Error al cargar técnico:", error.message);
+      return res.status(500).send("No se pudo cargar el técnico");
+    }
+  }
+);
+
+// Guardar modificación
+app.post(
+  "/vista/tecnicos/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de técnico inválido");
+      }
+
+      const { nombre, apellido, especialidad, telefono, email } = req.body;
+
+      if (
+        typeof nombre !== "string" || !nombre.trim() ||
+        typeof apellido !== "string" || !apellido.trim() ||
+        typeof especialidad !== "string" ||
+        typeof telefono !== "string" ||
+        typeof email !== "string" ||
+        (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim()))
+      ) {
+        return res.status(400).send("Datos del técnico inválidos");
+      }
+
+      const datos = {
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        especialidad: especialidad.trim(),
+        telefono: telefono.trim(),
+        email: email.trim().toLowerCase()
+      };
+
+      const session = await mongoose.startSession();
+
+      try {
+        await session.withTransaction(async () => {
+          const tecnico = await Tecnico.findById(
+            req.params.id
+          ).session(session);
+
+          if (!tecnico) {
+            const error = new Error("Técnico no encontrado");
+            error.status = 404;
+            throw error;
+          }
+
+          const usuario = await User.findOne({
+            id_tecnico: tecnico._id
+          }).session(session);
+
+          if (usuario && !datos.email) {
+            const error = new Error(
+              "El correo es obligatorio para técnicos con cuenta"
+            );
+            error.status = 400;
+            throw error;
+          }
+
+          tecnico.set(datos);
+          await tecnico.save({ session });
+
+          if (usuario) {
+            usuario.nombre = datos.nombre;
+            usuario.apellido = datos.apellido;
+            usuario.email = datos.email;
+
+            await usuario.save({ session });
+          }
+        });
+      } finally {
+        await session.endSession();
+      }
+
+      return res.redirect("/vista/tecnicos?editado=1");
+
+    } catch (error) {
+      console.error("Error al editar técnico:", error.message);
+
+      if (error.status) {
+        return res.status(error.status).send(error.message);
+      }
+
+      if (error.code === 11000) {
+        return res.status(400).send(
+          "El correo ya está registrado en otra cuenta"
+        );
+      }
+
+      if (error.name === "ValidationError") {
+        return res.status(400).send("Datos del técnico inválidos");
+      }
+
+      return res.status(500).send("No se pudo modificar el técnico");
+    }
+  }
+);
+
+// Eliminar técnico y cuenta asociada
+app.post(
+  "/vista/tecnicos/:id/eliminar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de técnico inválido");
+      }
+
+      const session = await mongoose.startSession();
+
+      try {
+        await session.withTransaction(async () => {
+          const tecnico = await Tecnico.findById(
+            req.params.id
+          ).session(session);
+
+          if (!tecnico) {
+            const error = new Error("Técnico no encontrado");
+            error.status = 404;
+            throw error;
+          }
+
+          // Proteger observaciones existentes
+          const tieneObservaciones = await Observacion.exists({
+            id_tecnico: tecnico._id
+          }).session(session);
+
+          if (tieneObservaciones) {
+            const error = new Error(
+              "No puedes eliminar un técnico con observaciones asociadas"
+            );
+            error.status = 409;
+            throw error;
+          }
+
+          // No eliminar la cuenta de quien está conectado
+          const cuenta = await User.findOne({
+            id_tecnico: tecnico._id
+          }).session(session);
+
+          if (
+            cuenta &&
+            String(cuenta._id) === String(req.user.id)
+          ) {
+            const error = new Error(
+              "No puedes eliminar tu propia cuenta"
+            );
+            error.status = 403;
+            throw error;
+          }
+
+          await User.deleteMany(
+            { id_tecnico: tecnico._id },
+            { session }
+          );
+
+          await Tecnico.deleteOne(
+            { _id: tecnico._id },
+            { session }
+          );
+        });
+      } finally {
+        await session.endSession();
+      }
+
+      return res.redirect("/vista/tecnicos?eliminado=1");
+
+    } catch (error) {
+      console.error("Error al eliminar técnico:", error.message);
+
+      if (error.status) {
+        return res.status(error.status).send(error.message);
+      }
+
+      return res.status(500).send("No se pudo eliminar el técnico");
+    }
+  }
+);
+
+
 app.get("/vista/tipos-cultivo", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const tiposCultivo = await TipoCultivo.find();
@@ -576,7 +1024,10 @@ app.get("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, r
         usuarios,
         productores,
         tecnicos,
-        creado: req.query.creado === "1"
+        creado: req.query.creado === "1",
+        editado: req.query.editado === "1",
+        eliminado: req.query.eliminado === "1",
+        usuarioActualId: String(req.user.id)
       });
 
 
@@ -856,6 +1307,177 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
   }
 );
 
+
+function validarOrigenAdministracion(req) {
+  const origin = req.get("origin");
+  const fetchSite = req.get("sec-fetch-site");
+
+  if (fetchSite && fetchSite !== "same-origin") {
+    return false;
+  }
+
+  if (origin && origin !== "null") {
+    try {
+      const url = new URL(origin);
+
+      if (url.host !== req.get("host")) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return Boolean(
+    (origin && origin !== "null") ||
+    fetchSite === "same-origin"
+  );
+}
+
+// Mostrar formulario de edición
+app.get(
+  "/vista/usuarios/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de usuario inválido");
+      }
+
+      const usuario = await User.findById(req.params.id);
+
+      if (!usuario) {
+        return res.status(404).send("Usuario no encontrado");
+      }
+
+      return res.render("usuario_editar", {
+        title: "Editar usuario",
+        usuario
+      });
+    } catch (error) {
+      console.error("Error al cargar usuario:", error.message);
+      return res.status(500).send("No se pudo cargar el usuario");
+    }
+  }
+);
+
+// Guardar cambios del usuario
+app.post(
+  "/vista/usuarios/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de usuario inválido");
+      }
+
+      const usuario = await User.findById(req.params.id);
+
+      if (!usuario) {
+        return res.status(404).send("Usuario no encontrado");
+      }
+
+      const { username, email, password } = req.body;
+
+      if (
+        typeof username !== "string" ||
+        username.trim().length < 3 ||
+        typeof email !== "string" ||
+        !/^\S+@\S+\.\S+$/.test(email.trim()) ||
+        (password !== undefined && typeof password !== "string")
+      ) {
+        return res.status(400).send("Datos del formulario inválidos");
+      }
+
+      usuario.username = username.trim().toLowerCase();
+      usuario.email = email.trim().toLowerCase();
+
+      // Solo cambia la contraseña si se ingresó una nueva
+      if (password) {
+        if (password.length < 8) {
+          return res.status(400).send(
+            "La contraseña debe tener al menos 8 caracteres"
+          );
+        }
+
+        usuario.password = password;
+      }
+
+      await usuario.save();
+
+      return res.redirect("/vista/usuarios?editado=1");
+    } catch (error) {
+      console.error("Error al editar usuario:", error.message);
+
+      if (error.code === 11000) {
+        return res.status(400).send(
+          "El nombre de usuario o correo ya está registrado"
+        );
+      }
+
+      if (error.name === "ValidationError") {
+        return res.status(400).send("Datos de usuario inválidos");
+      }
+
+      return res.status(500).send("No se pudo modificar el usuario");
+    }
+  }
+);
+
+// Eliminar exclusivamente la cuenta de usuario
+app.post(
+  "/vista/usuarios/:id/eliminar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de usuario inválido");
+      }
+
+      if (String(req.params.id) === String(req.user.id)) {
+        return res.status(403).send(
+          "No puedes eliminar tu propia cuenta"
+        );
+      }
+
+      const usuario = await User.findById(req.params.id);
+
+      if (!usuario) {
+        return res.status(404).send("Usuario no encontrado");
+      }
+
+      if (usuario.role === "admin") {
+        const cantidadAdmins = await User.countDocuments({
+          role: "admin"
+        });
+
+        if (cantidadAdmins <= 1) {
+          return res.status(403).send(
+            "No se puede eliminar el último administrador"
+          );
+        }
+      }
+
+      await User.findByIdAndDelete(usuario._id);
+
+      return res.redirect("/vista/usuarios?eliminado=1");
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error.message);
+      return res.status(500).send("No se pudo eliminar el usuario");
+    }
+  }
+);
 
 
 app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {

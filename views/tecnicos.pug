@@ -6,6 +6,12 @@ block content
 
   if creado
     p.success-message Técnico y cuenta de usuario creados correctamente.
+  
+  if editado
+    p.success-message Técnico modificado correctamente.
+
+  if eliminado
+    p.success-message Técnico y cuenta asociada eliminados correctamente.
 
 
   if rolUsuario === "admin"
@@ -51,12 +57,30 @@ block content
               th Especialidad
               th Teléfono
               th Email
+              if rolUsuario === "admin"
+                th Acciones
           tbody
+            
             each tecnico in tecnicos
               tr
                 td #{tecnico.nombre} #{tecnico.apellido}
                 td= tecnico.especialidad || 'Sin especificar'
                 td= tecnico.telefono || 'Sin teléfono'
                 td= tecnico.email || 'Sin email'
+
+                if rolUsuario === "admin"
+                  td
+                    a.btn.btn-primary(
+                      href="/vista/tecnicos/" + tecnico._id + "/editar"
+                    ) Editar
+
+                    form(
+                      method="POST"
+                      action="/vista/tecnicos/" + tecnico._id + "/eliminar"
+                      style="display:inline-block; margin-left:8px;"
+                      onsubmit="return confirm('¿Seguro que deseas eliminar este técnico y su cuenta asociada?');"
+                    )
+                      button.btn(type="submit") Eliminar
+
     else
       p.empty-state No hay técnicos registrados.
