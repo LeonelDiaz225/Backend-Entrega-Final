@@ -450,12 +450,25 @@ exports.getHistorial = async (req, res) => {
       return res.status(404).json({ error: "Lote no encontrado" });
     }
 
-    const observaciones = await Observacion.find({
-      id_lote: req.params.id,
-      activa: true,
-    }).populate("id_tecnico");
 
-    res.status(200).json(observaciones);
+    // Consultar observaciones activas del lote
+    let consulta = Observacion.find({
+      id_lote: req.params.id,
+      activa: true
+    });
+
+    // Mostrar datos del técnico solamente
+    // a administradores y técnicos
+    if (req.user.role === "productor") {
+      consulta = consulta.select("-id_tecnico");
+    } else {
+      consulta = consulta.populate("id_tecnico");
+    }
+
+    const observaciones = await consulta;
+
+    return res.status(200).json(observaciones);
+
   } catch (error) {
     res.status(500).json({ error: "Error al obtener el historial del lote" });
   }

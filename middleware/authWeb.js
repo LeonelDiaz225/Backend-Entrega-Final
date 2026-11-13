@@ -1,8 +1,9 @@
-
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const authenticateWeb = (req, res, next) => {
-  // Obtener las cookies enviadas por el navegador
+const authenticateWeb = async (req, res, next) => {
+
+  // 1. Obtener las cookies del navegador
   const cookies = req.headers.cookie || "";
 
   const tokenCookie = cookies
@@ -10,38 +11,56 @@ const authenticateWeb = (req, res, next) => {
     .map(cookie => cookie.trim())
     .find(cookie => cookie.startsWith("agrotec_token="));
 
-  // Si no existe la cookie, enviar al login
   if (!tokenCookie) {
     return res.redirect("/login");
   }
 
-  const token = tokenCookie
-    .slice("agrotec_token=".length);
+  const token = tokenCookie.substring("agrotec_token=".length);
+
+  // 2. Verificar el JWT
+  let decoded;
 
   try {
-    // Verificar que el JWT sea válido y no esté vencido
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    return res.redirect("/login");
+  }
 
-    // Guardar los datos del usuario para usarlos
-    // en las siguientes funciones
-    req.user = decoded;
+  // 3. Consultar el usuario actual en MongoDB
+  try {
+    const usuario = await User.findById(decoded.id)
+      .select("username role id_productor");
 
-// Compartir los datos del usuario con las vistas Pug
-    res.locals.usuarioActual = {
-      id: decoded.id,
-      username: decoded.username,
-      role: decoded.role
+    if (!usuario) {
+      return res.redirect("/login");
+    }
+
+    // 4. Guardar los datos actuales en la petición
+    req.user = {
+      id: usuario._id.toString(),
+      username: usuario.username,
+      role: usuario.role,
+      id_productor: usuario.id_productor
     };
 
-    next();
+    // 5. Hacer los datos disponibles para Pug
+    res.locals.usuarioActual = {
+      id: usuario._id.toString(),
+      username: usuario.username,
+      role: usuario.role
+    };
+
+    return next();
 
   } catch (error) {
-    // Token inválido o expirado
-    res.clearCookie("agrotec_token");
-    return res.redirect("/login");
+    console.error(
+      "Error al verificar sesión web:",
+      error.message
+    );
+
+    return res.status(500).send(
+      "Error al verificar la sesión"
+    );
   }
 };
 

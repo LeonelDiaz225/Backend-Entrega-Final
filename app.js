@@ -122,14 +122,68 @@ app.get("/", authenticateWeb, (req, res) => {
 });
 
 
+
 app.get("/vista/lotes", authenticateWeb, async (req, res) => {
   try {
-    const lotes = await Lote.find().populate("id_productor");
-    res.render("lotes", { title: "Listado de Lotes", lotes });
+
+    // 1. Buscar el usuario conectado
+    const usuario = await User.findById(req.user.id)
+      .select("role id_productor");
+
+    if (!usuario) {
+      return res.status(401).send(
+        "Usuario no encontrado"
+      );
+    }
+
+    // 2. Preparar el filtro de MongoDB
+    const filtro = {};
+
+    if (usuario.role === "productor") {
+
+      // El productor debe tener una asociación válida
+      if (!usuario.id_productor) {
+        return res.status(403).send(
+          "No tienes un productor asociado"
+        );
+      }
+
+      // Mostrar solo sus propios lotes
+      filtro.id_productor = usuario.id_productor;
+
+    } else if (
+      usuario.role !== "admin" &&
+      usuario.role !== "tecnico"
+    ) {
+      return res.status(403).send(
+        "No tienes permisos para consultar lotes"
+      );
+    }
+
+    // 3. Buscar los lotes correspondientes
+    const lotes = await Lote.find(filtro)
+      .populate("id_productor");
+
+    // 4. Mostrar la vista
+    res.render("lotes", {
+      title: usuario.role === "productor"
+        ? "Mis Lotes"
+        : "Listado de Lotes",
+      lotes
+    });
+
   } catch (error) {
-    res.status(500).send("Error al cargar la vista de lotes");
+    console.error(
+      "Error al cargar lotes:",
+      error.message
+    );
+
+    res.status(500).send(
+      "Error al cargar la vista de lotes"
+    );
   }
 });
+
 
 app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
@@ -373,27 +427,90 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
 );
 
 
+
 app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
   try {
-    const lote = await Lote.findById(req.params.id).populate("id_productor");
+    const mongoose = require("mongoose");
+
+    // 1. Buscar al usuario que inició sesión
+    const usuario = await User.findById(req.user.id)
+      .select("role id_productor");
+
+    if (!usuario) {
+      return res.status(401).send("Usuario no encontrado");
+    }
+
+    // 2. Comprobar que tenga un rol permitido
+    if (!["admin", "tecnico", "productor"].includes(usuario.role)) {
+      return res.status(403).send("Acceso denegado");
+    }
+
+    // 3. Validar el ID del lote
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+      return res.status(400).send("ID de lote no válido");
+    }
+
+    // 4. Preparar la consulta
+    const filtro = {
+      _id: req.params.id
+    };
+
+    if (usuario.role === "productor") {
+
+      if (!usuario.id_productor) {
+        return res.status(403).send(
+          "No tienes un productor asociado"
+        );
+      }
+
+      // Solo permitir el lote del propio productor
+      filtro.id_productor = usuario.id_productor;
+    }
+
+    // 5. Buscar el lote con los permisos aplicados
+    const lote = await Lote.findOne(filtro)
+      .populate("id_productor");
+
     if (!lote) {
       return res.status(404).send("Lote no encontrado");
     }
 
-    const observaciones = await Observacion.find({
-      id_lote: req.params.id,
-      activa: true,
-    }).populate("id_tecnico");
+    // 6. Consultar las observaciones de ese lote
+    let consultaObservaciones = Observacion.find({
+      id_lote: lote._id,
+      activa: true
+    });
 
-    res.render("lote_detalle", {
+    if (usuario.role === "productor") {
+      // No exponer datos de los técnicos al productor
+      consultaObservaciones = consultaObservaciones
+        .select("-id_tecnico");
+    } else {
+      consultaObservaciones = consultaObservaciones
+        .populate("id_tecnico");
+    }
+
+    const observaciones = await consultaObservaciones;
+
+    // 7. Mostrar el detalle
+    return res.render("lote_detalle", {
       title: `Detalle del Lote ${lote.nombre_numero}`,
       lote,
-      observaciones,
+      observaciones
     });
+
   } catch (error) {
-    res.status(500).send("Error al cargar el detalle del lote");
+    console.error(
+      "Error al cargar detalle del lote:",
+      error.message
+    );
+
+    return res.status(500).send(
+      "Error al cargar el detalle del lote"
+    );
   }
 });
+
 
 app.use((req, res) => {
   res.status(404).json({ error: "Ruta no encontrada" });
