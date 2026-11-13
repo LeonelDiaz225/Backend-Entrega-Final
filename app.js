@@ -189,7 +189,7 @@ app.get("/vista/lotes", authenticateWeb, async (req, res) => {
 app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const productores = await Productor.find();
-    res.render("productores", { title: "Listado de Productores", productores });
+    res.render("productores", { title: "Listado de Productores", productores, rolUsuario: req.user.role });
   } catch (error) {
     res.status(500).send("Error al cargar la vista de productores");
   }
@@ -198,7 +198,7 @@ app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"),
 app.get("/vista/tecnicos", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const tecnicos = await Tecnico.find();
-    res.render("tecnicos", { title: "Listado de Técnicos", tecnicos });
+    res.render("tecnicos", { title: "Listado de Técnicos", tecnicos, rolUsuario: req.user.role });
   } catch (error) {
     res.status(500).send("Error al cargar la vista de técnicos");
   }
