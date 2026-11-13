@@ -1,0 +1,30 @@
+extends layout
+
+block content
+  h1.page-title Editar lote
+  p.subtitle Modifica los datos del lote seleccionado.
+
+  section.panel
+    form.form-productor(
+      method="POST"
+      action="/vista/lotes/" + lote._id + "/editar"
+    )
+      label(for="nombre_numero") Nombre o número del lote
+      input#nombre_numero(
+        type="text"
+        name="nombre_numero"
+        value=lote.nombre_numero
+        required
+      )
+
+      label(for="id_productor") Productor
+      select#id_productor(name="id_productor" required)
+        each productor in productores
+          option(
+            value=productor._id
+            selected=String(productor._id) === String(lote.id_productor)
+          )= productor.nombre + " " + productor.apellido
+
+      button.btn.btn-primary(type="submit") Guardar cambios
+
+      a.btn(href="/vista/lotes") Cancelar

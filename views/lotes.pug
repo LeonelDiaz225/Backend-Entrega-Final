@@ -3,7 +3,39 @@ extends layout
 block content
   h1.page-title= title
   p.subtitle Lotes agrícolas registrados en AgroTec.
+
+  if creado
+    p.success-message Lote creado correctamente.
+
+  if editado
+    p.success-message Lote modificado correctamente.
+
+  if eliminado
+    p.success-message Lote eliminado correctamente.
+
+  if rolUsuario === "admin" || rolUsuario === "tecnico"
+    section.panel
+      h2 Registrar nuevo lote
+
+      form.form-productor(method="POST" action="/vista/lotes")
+        label(for="nombre_numero") Nombre o número del lote
+        input#nombre_numero(
+          type="text"
+          name="nombre_numero"
+          required
+        )
+
+        label(for="id_productor") Productor
+        select#id_productor(name="id_productor" required)
+          option(value="") Seleccionar productor
+          each productor in productores
+            option(value=productor._id)= productor.nombre + " " + productor.apellido
+
+        button.btn.btn-primary(type="submit") Registrar lote
+
   section.panel
+    h2 Lotes registrados
+
     if lotes.length > 0
       .table-wrap
         table.data-table
@@ -16,8 +48,23 @@ block content
             each lote in lotes
               tr
                 td= lote.nombre_numero
-                td= lote.id_productor ? lote.id_productor.nombre + ' ' + lote.id_productor.apellido : 'Sin asignar'
+                td= lote.id_productor ? lote.id_productor.nombre + " " + lote.id_productor.apellido : "Sin asignar"
                 td
-                  a(href=`/vista/lotes/${lote._id}`) Ver historial
+                  a(href="/vista/lotes/" + lote._id) Ver historial
+
+                  if rolUsuario === "admin" || rolUsuario === "tecnico"
+                    a.btn.btn-primary(
+                      href="/vista/lotes/" + lote._id + "/editar"
+                      style="margin-left:8px;"
+                    ) Editar
+
+                    form(
+                      method="POST"
+                      action="/vista/lotes/" + lote._id + "/eliminar"
+                      style="display:inline-block; margin-left:8px;"
+                      onsubmit="return confirm('¿Seguro que deseas eliminar este lote?');"
+                    )
+                      button.btn(type="submit") Eliminar
     else
       p.empty-state No hay lotes registrados.
+

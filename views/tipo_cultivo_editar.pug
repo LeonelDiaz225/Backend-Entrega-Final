@@ -1,0 +1,22 @@
+extends layout
+
+block content
+  h1.page-title Editar tipo de cultivo
+  p.subtitle Modifica el nombre del cultivo seleccionado.
+
+  section.panel
+    form.form-productor(
+      method="POST"
+      action="/vista/tipos-cultivo/" + cultivo._id + "/editar"
+    )
+      label(for="nombre") Nombre del cultivo
+      input#nombre(
+        type="text"
+        name="nombre"
+        value=cultivo.nombre
+        required
+      )
+
+      button.btn.btn-primary(type="submit") Guardar cambios
+
+      a.btn(href="/vista/tipos-cultivo") Cancelar

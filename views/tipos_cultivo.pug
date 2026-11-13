@@ -1,9 +1,42 @@
+
 extends layout
 
 block content
   h1.page-title= title
   p.subtitle Catálogo de tipos de cultivo.
+
+  if creado
+    p.success-message Tipo de cultivo registrado correctamente.
+
+  if editado
+    p.success-message Tipo de cultivo modificado correctamente.
+
+  if eliminado
+    p.success-message Tipo de cultivo eliminado correctamente.
+
+  //- Solo el administrador puede registrar cultivos
+  if rolUsuario === "admin" || rolUsuario === "tecnico"
+    section.panel
+      h2 Registrar nuevo tipo de cultivo
+      p Ingresa el nombre del cultivo que deseas agregar al catálogo.
+
+      form.form-productor(
+        method="POST"
+        action="/vista/tipos-cultivo"
+      )
+        label(for="nombre") Nombre del cultivo
+        input#nombre(
+          type="text"
+          name="nombre"
+          placeholder="Ejemplo: Soja"
+          required
+        )
+
+        button.btn.btn-primary(type="submit") Registrar cultivo
+
   section.panel
+    h2 Tipos de cultivo registrados
+
     if tiposCultivo.length > 0
       .table-wrap
         table.data-table
@@ -11,10 +44,29 @@ block content
             tr
               th Número
               th Tipo de cultivo
+
+              if rolUsuario === "admin" || rolUsuario === "tecnico"
+                th Acciones
+
           tbody
             each tipo, index in tiposCultivo
               tr
                 td= index + 1
                 td= tipo.nombre
+
+                if rolUsuario === "admin" || rolUsuario === "tecnico"
+                  td
+                    a.btn.btn-primary(
+                      href="/vista/tipos-cultivo/" + tipo._id + "/editar"
+                    ) Editar
+
+                    if rolUsuario === "admin"
+                      form(
+                        method="POST"
+                        action="/vista/tipos-cultivo/" + tipo._id + "/eliminar"
+                        style="display:inline-block; margin-left:8px;"
+                        onsubmit="return confirm('¿Seguro que deseas eliminar este cultivo?');"
+                      )
+                        button.btn(type="submit") Eliminar
     else
       p.empty-state No hay tipos de cultivo registrados.

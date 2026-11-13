@@ -381,22 +381,48 @@ exports.update = async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+
 exports.delete = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ error: "ID de lote no válido" });
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+      return res.status(400).json({
+        error: "ID de lote no válido"
+      });
     }
 
-    const eliminado = await Lote.findByIdAndDelete(req.params.id);
-    if (!eliminado) {
-      return res.status(404).json({ error: "Lote no encontrado" });
+    const lote = await Lote.findById(req.params.id);
+
+    if (!lote) {
+      return res.status(404).json({
+        error: "Lote no encontrado"
+      });
     }
 
-    res.status(200).json({ mensaje: "Lote eliminado correctamente" });
+    const tieneObservaciones = await Observacion.exists({
+      id_lote: lote._id
+    });
+
+    if (tieneObservaciones) {
+      return res.status(409).json({
+        error: "No se puede eliminar un lote con observaciones asociadas"
+      });
+    }
+
+    await Lote.deleteOne({ _id: lote._id });
+
+    return res.status(200).json({
+      mensaje: "Lote eliminado correctamente"
+    });
+
   } catch (error) {
-    res.status(500).json({ error: "Error al eliminar el lote" });
+    console.error("Error al eliminar lote:", error.message);
+
+    return res.status(500).json({
+      error: "Error al eliminar el lote"
+    });
   }
 };
+
 
 /**
  * @openapi

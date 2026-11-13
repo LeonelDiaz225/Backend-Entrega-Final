@@ -166,12 +166,21 @@ app.get("/vista/lotes", authenticateWeb, async (req, res) => {
       .populate("id_productor");
 
     // 4. Mostrar la vista
+
     res.render("lotes", {
       title: usuario.role === "productor"
         ? "Mis Lotes"
         : "Listado de Lotes",
-      lotes
+      lotes,
+      productores: usuario.role === "productor"
+        ? []
+        : await Productor.find().sort({ apellido: 1, nombre: 1 }),
+      rolUsuario: usuario.role,
+      creado: req.query.creado === "1",
+      editado: req.query.editado === "1",
+      eliminado: req.query.eliminado === "1"
     });
+
 
   } catch (error) {
     console.error(
@@ -184,6 +193,187 @@ app.get("/vista/lotes", authenticateWeb, async (req, res) => {
     );
   }
 });
+
+
+// Validar los datos del formulario de lotes
+async function validarDatosLote(body) {
+  const { nombre_numero, id_productor } = body;
+
+  if (
+    typeof nombre_numero !== "string" ||
+    !nombre_numero.trim() ||
+    typeof id_productor !== "string" ||
+    !mongoose.isObjectIdOrHexString(id_productor)
+  ) {
+    return null;
+  }
+
+  const productor = await Productor.findById(id_productor);
+
+  if (!productor) return null;
+
+  return {
+    nombre_numero: nombre_numero.trim(),
+    id_productor: productor._id
+  };
+}
+
+// Crear lote desde la web
+app.post(
+  "/vista/lotes",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      const datos = await validarDatosLote(req.body);
+
+      if (!datos) {
+        return res.status(400).send(
+          "Nombre de lote o productor inválido"
+        );
+      }
+
+      await Lote.create(datos);
+
+      return res.redirect("/vista/lotes?creado=1");
+    } catch (error) {
+      console.error("Error al crear lote:", error.message);
+      return res.status(500).send("No se pudo crear el lote");
+    }
+  }
+);
+
+// Mostrar formulario de edición
+app.get(
+  "/vista/lotes/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de lote inválido");
+      }
+
+      const lote = await Lote.findById(req.params.id);
+
+      if (!lote) {
+        return res.status(404).send("Lote no encontrado");
+      }
+
+      const productores = await Productor.find()
+        .sort({ apellido: 1, nombre: 1 });
+
+      return res.render("lote_editar", {
+        title: "Editar lote",
+        lote,
+        productores
+      });
+    } catch (error) {
+      console.error("Error al cargar lote:", error.message);
+      return res.status(500).send("No se pudo cargar el lote");
+    }
+  }
+);
+
+// Guardar cambios
+app.post(
+  "/vista/lotes/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de lote inválido");
+      }
+
+      const datos = await validarDatosLote(req.body);
+
+      if (!datos) {
+        return res.status(400).send("Datos del lote inválidos");
+      }
+
+      const lote = await Lote.findById(req.params.id);
+
+      if (!lote) {
+        return res.status(404).send("Lote no encontrado");
+      }
+
+      // Evitar cambiar propietario si hay historial
+      if (
+        String(lote.id_productor) !== String(datos.id_productor)
+      ) {
+        const tieneObservaciones = await Observacion.exists({
+          id_lote: lote._id
+        });
+
+        if (tieneObservaciones) {
+          return res.status(409).send(
+            "No se puede cambiar el productor de un lote con observaciones"
+          );
+        }
+      }
+
+      lote.set(datos);
+      await lote.save();
+
+      return res.redirect("/vista/lotes?editado=1");
+
+    } catch (error) {
+      console.error("Error al editar lote:", error.message);
+      return res.status(500).send("No se pudo modificar el lote");
+    }
+  }
+);
+
+// Eliminar lote desde la web
+app.post(
+  "/vista/lotes/:id/eliminar",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de lote inválido");
+      }
+
+      const lote = await Lote.findById(req.params.id);
+
+      if (!lote) {
+        return res.status(404).send("Lote no encontrado");
+      }
+
+      const tieneObservaciones = await Observacion.exists({
+        id_lote: lote._id
+      });
+
+      if (tieneObservaciones) {
+        return res.status(409).send(
+          "No puedes eliminar un lote con observaciones asociadas"
+        );
+      }
+
+      await Lote.deleteOne({ _id: lote._id });
+
+      return res.redirect("/vista/lotes?eliminado=1");
+
+    } catch (error) {
+      console.error("Error al eliminar lote:", error.message);
+      return res.status(500).send("No se pudo eliminar el lote");
+    }
+  }
+);
 
 
 app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
@@ -976,11 +1166,232 @@ app.get("/vista/tipos-cultivo", authenticateWeb, authorizeWeb("admin", "tecnico"
     res.render("tipos_cultivo", {
       title: "Listado de Tipos de Cultivo",
       tiposCultivo,
+      rolUsuario: req.user.role,
+      creado: req.query.creado === "1",
+      editado: req.query.editado === "1",
+      eliminado: req.query.eliminado === "1"
     });
   } catch (error) {
     res.status(500).send("Error al cargar la vista de tipos de cultivo");
   }
 });
+
+/* ADMINISTRACIÓN DE TIPOS DE CULTIVO */
+
+// Escapar caracteres especiales para búsquedas exactas
+function escaparRegexCultivo(texto) {
+  return texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Verificar si un cultivo aparece en observaciones
+async function cultivoEnUso(nombre) {
+  return Boolean(
+    await Observacion.exists({
+      tipo_cultivo: {
+        $regex: "^" + escaparRegexCultivo(nombre) + "$",
+        $options: "i"
+      }
+    })
+  );
+}
+
+// Crear tipo de cultivo
+app.post(
+  "/vista/tipos-cultivo",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      const { nombre } = req.body;
+
+      if (typeof nombre !== "string" || !nombre.trim()) {
+        return res.status(400).send(
+          "El nombre del cultivo es obligatorio"
+        );
+      }
+
+      const nombreLimpio = nombre.trim();
+
+      const existente = await TipoCultivo.findOne({
+        nombre: {
+          $regex: "^" + escaparRegexCultivo(nombreLimpio) + "$",
+          $options: "i"
+        }
+      });
+
+      if (existente) {
+        return res.status(409).send(
+          "Este tipo de cultivo ya está registrado"
+        );
+      }
+
+      await TipoCultivo.create({ nombre: nombreLimpio });
+
+      return res.redirect("/vista/tipos-cultivo?creado=1");
+
+    } catch (error) {
+      console.error("Error al crear cultivo:", error.message);
+
+      if (error.code === 11000) {
+        return res.status(409).send(
+          "Este tipo de cultivo ya está registrado"
+        );
+      }
+
+      return res.status(500).send(
+        "No se pudo registrar el cultivo"
+      );
+    }
+  }
+);
+
+// Mostrar formulario para editar
+app.get(
+  "/vista/tipos-cultivo/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de cultivo inválido");
+      }
+
+      const cultivo = await TipoCultivo.findById(req.params.id);
+
+      if (!cultivo) {
+        return res.status(404).send("Cultivo no encontrado");
+      }
+
+      return res.render("tipo_cultivo_editar", {
+        title: "Editar tipo de cultivo",
+        cultivo
+      });
+
+    } catch (error) {
+      console.error("Error al cargar cultivo:", error.message);
+      return res.status(500).send(
+        "No se pudo cargar el cultivo"
+      );
+    }
+  }
+);
+
+// Guardar cambios
+app.post(
+  "/vista/tipos-cultivo/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de cultivo inválido");
+      }
+
+      const { nombre } = req.body;
+
+      if (typeof nombre !== "string" || !nombre.trim()) {
+        return res.status(400).send(
+          "El nombre del cultivo es obligatorio"
+        );
+      }
+
+      const nombreLimpio = nombre.trim();
+      const cultivo = await TipoCultivo.findById(req.params.id);
+
+      if (!cultivo) {
+        return res.status(404).send("Cultivo no encontrado");
+      }
+
+      if (cultivo.nombre !== nombreLimpio) {
+        if (await cultivoEnUso(cultivo.nombre)) {
+          return res.status(409).send(
+            "No puedes renombrar un cultivo utilizado en observaciones"
+          );
+        }
+      }
+
+      const duplicado = await TipoCultivo.findOne({
+        _id: { $ne: cultivo._id },
+        nombre: {
+          $regex: "^" + escaparRegexCultivo(nombreLimpio) + "$",
+          $options: "i"
+        }
+      });
+
+      if (duplicado) {
+        return res.status(409).send(
+          "Ya existe otro cultivo con ese nombre"
+        );
+      }
+
+      cultivo.nombre = nombreLimpio;
+      await cultivo.save();
+
+      return res.redirect("/vista/tipos-cultivo?editado=1");
+
+    } catch (error) {
+      console.error("Error al editar cultivo:", error.message);
+
+      if (error.code === 11000) {
+        return res.status(409).send(
+          "Ya existe otro cultivo con ese nombre"
+        );
+      }
+
+      return res.status(500).send(
+        "No se pudo modificar el cultivo"
+      );
+    }
+  }
+);
+
+// Eliminar tipo de cultivo
+app.post(
+  "/vista/tipos-cultivo/:id/eliminar",
+  authenticateWeb,
+  authorizeWeb("admin"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de cultivo inválido");
+      }
+
+      const cultivo = await TipoCultivo.findById(req.params.id);
+
+      if (!cultivo) {
+        return res.status(404).send("Cultivo no encontrado");
+      }
+
+      if (await cultivoEnUso(cultivo.nombre)) {
+        return res.status(409).send(
+          "No puedes eliminar un cultivo utilizado en observaciones"
+        );
+      }
+
+      await TipoCultivo.deleteOne({ _id: cultivo._id });
+
+      return res.redirect("/vista/tipos-cultivo?eliminado=1");
+
+    } catch (error) {
+      console.error("Error al eliminar cultivo:", error.message);
+      return res.status(500).send(
+        "No se pudo eliminar el cultivo"
+      );
+    }
+  }
+);
 
 
 app.get("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
