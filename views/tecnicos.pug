@@ -4,6 +4,10 @@ block content
   h1.page-title= title
   p.subtitle Técnicos que realizan el seguimiento de cultivos.
 
+  if creado
+    p.success-message Técnico y cuenta de usuario creados correctamente.
+
+
   if rolUsuario === "admin"
     section.panel
       h2 Registrar nuevo técnico
@@ -35,7 +39,7 @@ block content
         label(for="password") Contraseña
         input#password(type="password", name="password", minlength="8", required)
 
-        button(type="submit", disabled) Registrar técnico
+        button(type="submit") Registrar técnico
 
   section.panel
     if tecnicos.length > 0

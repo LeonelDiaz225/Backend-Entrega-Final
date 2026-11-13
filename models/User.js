@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
         password: {
             type: String,
             required: [true, "La contraseña es obligatoria"],
-            minlength: [6, "La contraseña debe tener al menos 6 caracteres"],
+            minlength: [8, "La contraseña debe tener al menos 8 caracteres"],
             select: false,
         },
         nombre: {
@@ -63,6 +63,28 @@ const userSchema = new mongoose.Schema(
     {
         timestamps: true,
     }
+);
+
+userSchema.index(
+  { id_productor: 1 },
+  {
+    unique: true,
+    name: "unique_usuario_productor",
+    partialFilterExpression: {
+      id_productor: { $type: "objectId" }
+    }
+  }
+);
+
+userSchema.index(
+  { id_tecnico: 1 },
+  {
+    unique: true,
+    name: "unique_usuario_tecnico",
+    partialFilterExpression: {
+      id_tecnico: { $type: "objectId" }
+    }
+  }
 );
 
 userSchema.pre("save", async function () {

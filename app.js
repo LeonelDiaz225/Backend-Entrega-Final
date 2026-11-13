@@ -350,11 +350,177 @@ app.post("/vista/productores", authenticateWeb, authorizeWeb("admin"), async (re
 app.get("/vista/tecnicos", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const tecnicos = await Tecnico.find();
-    res.render("tecnicos", { title: "Listado de Técnicos", tecnicos, rolUsuario: req.user.role });
+
+    res.render("tecnicos", {
+      title: "Listado de Técnicos",
+      tecnicos,
+      rolUsuario: req.user.role,
+      creado: req.query.creado === "1"
+    });
+
   } catch (error) {
     res.status(500).send("Error al cargar la vista de técnicos");
   }
 });
+
+
+app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
+    try {
+      // 1. Comprobar el origen de la solicitud
+      const origin = req.get("origin");
+      const fetchSite = req.get("sec-fetch-site");
+
+      if (fetchSite && fetchSite !== "same-origin") {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (origin && origin !== "null") {
+        let originURL;
+
+        try {
+          originURL = new URL(origin);
+        } catch {
+          return res.status(403).send("Origen no válido");
+        }
+
+        if (originURL.host !== req.get("host")) {
+          return res.status(403).send("Origen no permitido");
+        }
+      }
+
+      if (
+        (!origin || origin === "null") &&
+        fetchSite !== "same-origin"
+      ) {
+        return res.status(403).send("Origen no verificable");
+      }
+
+      // 2. Obtener los datos del formulario
+      const {
+        nombre,
+        apellido,
+        especialidad,
+        telefono,
+        email,
+        username,
+        password
+      } = req.body;
+
+      // 3. Validar campos obligatorios
+      if (
+        typeof nombre !== "string" ||
+        !nombre.trim() ||
+        typeof apellido !== "string" ||
+        !apellido.trim() ||
+        typeof email !== "string" ||
+        !email.trim() ||
+        typeof username !== "string" ||
+        !username.trim() ||
+        typeof password !== "string" ||
+        !password
+      ) {
+        return res.status(400).send(
+          "Debes completar todos los campos obligatorios"
+        );
+      }
+
+      // 4. Validar contraseña
+      if (password.length < 8) {
+        return res.status(400).send(
+          "La contraseña debe tener al menos 8 caracteres"
+        );
+      }
+
+      // 5. Normalizar los datos
+      const usuarioNormalizado = username.trim().toLowerCase();
+      const emailNormalizado = email.trim().toLowerCase();
+
+      // 6. Comprobar duplicados en users
+      const usuarioExistente = await User.findOne({
+        $or: [
+          { username: usuarioNormalizado },
+          { email: emailNormalizado }
+        ]
+      });
+
+      if (usuarioExistente) {
+        return res.status(400).send(
+          "El nombre de usuario o correo electrónico ya está registrado"
+        );
+      }
+
+      // 7. Iniciar transacción
+      const session = await mongoose.startSession();
+
+      try {
+        await session.withTransaction(async () => {
+
+          // Crear la ficha del técnico
+          const [nuevoTecnico] = await Tecnico.create(
+            [{
+              nombre: nombre.trim(),
+              apellido: apellido.trim(),
+              especialidad:
+                typeof especialidad === "string"
+                  ? especialidad.trim()
+                  : "",
+              telefono:
+                typeof telefono === "string"
+                  ? telefono.trim()
+                  : "",
+              email: emailNormalizado
+            }],
+            { session }
+          );
+
+          // Crear la cuenta vinculada
+          await User.create(
+            [{
+              username: usuarioNormalizado,
+              password,
+              nombre: nuevoTecnico.nombre,
+              apellido: nuevoTecnico.apellido,
+              email: nuevoTecnico.email,
+              role: "tecnico",
+              id_tecnico: nuevoTecnico._id,
+              id_productor: null
+            }],
+            { session }
+          );
+
+        });
+      } finally {
+        await session.endSession();
+      }
+
+      // 8. Confirmar registro
+      return res.redirect("/vista/tecnicos?creado=1");
+
+    } catch (error) {
+      console.error(
+        "Error al registrar técnico:",
+        error.message
+      );
+
+      if (error.code === 11000) {
+        return res.status(400).send(
+          "El usuario o correo electrónico ya está registrado"
+        );
+      }
+
+      if (error.name === "ValidationError") {
+        return res.status(400).send(
+          "Los datos del técnico no son válidos"
+        );
+      }
+
+      return res.status(500).send(
+        "No se pudo registrar el técnico. Intenta nuevamente."
+      );
+    }
+  }
+);
+
 
 app.get("/vista/tipos-cultivo", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
