@@ -10,6 +10,7 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerJSDoc = require("swagger-jsdoc");
 const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
+const mongoose = require("mongoose");
 
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
@@ -224,14 +225,22 @@ app.get("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, r
       // Obtener productores registrados
       const productores = await Productor.find()
         .sort({ apellido: 1, nombre: 1 });
+      
+    
+      const tecnicos = await Tecnico.find()
+        .sort({ apellido: 1, nombre: 1 });
+
 
       // Enviar los datos a la vista Pug
+      
       res.render("usuarios", {
         title: "Listado de Usuarios",
         usuarios,
         productores,
+        tecnicos,
         creado: req.query.creado === "1"
       });
+
 
     } catch (error) {
       console.error(
@@ -286,15 +295,17 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
       }
 
       // 3. Obtener los campos del formulario
-      const {
+       const {
         username,
         password,
         nombre,
         apellido,
         email,
         role,
-        id_productor
+        id_productor,
+        id_tecnico
       } = req.body;
+
 
       // 4. Validar los campos obligatorios
       if (
@@ -316,11 +327,12 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
       }
 
       // 6. Validar la contraseña
-      if (password.length < 12) {
+      if (password.length < 8) {
         throw new Error(
-          "La contraseña debe tener al menos 12 caracteres"
+          "La contraseña debe tener al menos 8 caracteres"
         );
       }
+
 
       // 7. Preparar los datos del usuario
       const datosUsuario = {
@@ -380,7 +392,57 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
         datosUsuario.id_productor = null;
       }
 
+      let tecnicoAsociado = null;
+
+      if (role === "tecnico") {
+
+        // Comprobar que se seleccionó un técnico
+        if (!id_tecnico) {
+          throw new Error("Debes seleccionar un técnico");
+        }
+
+        // Verificar el formato del identificador
+        if (!mongoose.isObjectIdOrHexString(id_tecnico)) {
+          throw new Error("El ID del técnico no es válido");
+        }
+
+        // Buscar al técnico en MongoDB
+        tecnicoAsociado = await Tecnico.findById(id_tecnico);
+
+        if (!tecnicoAsociado) {
+          throw new Error("El técnico seleccionado no existe");
+        }
+
+        // Evitar crear dos cuentas para el mismo técnico
+        const cuentaExistente = await User.exists({
+          id_tecnico: tecnicoAsociado._id
+        });
+
+        if (cuentaExistente) {
+          throw new Error("Este técnico ya tiene una cuenta de acceso");
+        }
+
+        // Comprobar que los datos correspondan al técnico elegido
+        if (
+          nombre.trim().toLowerCase() !==
+            tecnicoAsociado.nombre.trim().toLowerCase() ||
+          apellido.trim().toLowerCase() !==
+            tecnicoAsociado.apellido.trim().toLowerCase()
+        ) {
+          throw new Error(
+            "El nombre y apellido deben coincidir con el técnico seleccionado"
+          );
+        }
+
+      }
+
       // 9. Crear el usuario en MongoDB
+
+      // Guardar la asociación con el técnico
+      datosUsuario.id_tecnico = role === "tecnico"
+        ? tecnicoAsociado._id
+        : null;
+
       await User.create(datosUsuario);
 
       // 10. Mostrar confirmación
@@ -404,11 +466,15 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
 
         const productores = await Productor.find()
           .sort({ apellido: 1, nombre: 1 });
+        
+        const tecnicos = await Tecnico.find()
+          .sort({ apellido: 1, nombre: 1 });
 
         return res.status(400).render("usuarios", {
           title: "Listado de Usuarios",
           usuarios,
           productores,
+          tecnicos,
           error: mensaje
         });
 

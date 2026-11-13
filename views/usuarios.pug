@@ -66,13 +66,19 @@ block content
             option(value="admin") Administrador
 
         .form-field#productorField(style="display: none;")
-          label(for="id_productor") Productor asociado
+            label(for="id_productor") Productor asociado
+            select#id_productor(name="id_productor", disabled)
+              option(value="") Seleccionar productor
+              each productor in productores
+                option(value=productor._id)= productor.nombre + " " + productor.apellido
+        
+        .form-group#tecnicoField(style="display: none;")
+          label(for="id_tecnico") Técnico asociado
+          select#id_tecnico(name="id_tecnico", disabled)
+            option(value="") Selecciona un técnico
+            each tecnico in tecnicos
+              option(value=tecnico._id)= tecnico.nombre + " " + tecnico.apellido
 
-          select#id_productor(name="id_productor")
-            option(value="") Seleccionar productor
-
-            each productor in productores
-              option(value=productor._id)= productor.nombre + " " + productor.apellido
 
       button.btn.btn-primary(type="submit") Crear usuario
 

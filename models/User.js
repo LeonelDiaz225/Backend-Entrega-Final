@@ -49,6 +49,16 @@ const userSchema = new mongoose.Schema(
                 return this.role === "productor";
             }
         },
+
+        id_tecnico: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Tecnico",
+        default: null,
+        required: function () {
+            return this.role === "tecnico";
+        }
+        }
+
     },
     {
         timestamps: true,
