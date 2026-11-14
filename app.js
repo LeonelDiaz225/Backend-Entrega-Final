@@ -97,6 +97,7 @@ app.get("/login", (req, res) => {
 const authController = require("./controllers/authController");
 
 app.post("/login", authController.loginWeb);
+app.post("/", authController.loginWeb);
 
 app.post("/logout", (req, res) => {
   res.clearCookie("agrotec_token", {
