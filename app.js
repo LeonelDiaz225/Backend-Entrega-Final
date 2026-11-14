@@ -26,7 +26,6 @@ app.use(
 );
 app.use(requestLogger);
 
-// Documentación OpenAPI
 const swaggerSpec = swaggerJSDoc({
   definition: {
     openapi: "3.0.3",
@@ -82,7 +81,7 @@ app.use("/api/tecnicos", tecnicosRoutes);
 app.use("/api/tipos-cultivo", tiposCultivoRoutes);
 app.use("/api/auth", authRoutes);
 
-// Vistas Pug adaptadas a Mongoose (async/await)
+// Vistas Pug adaptadas a Mongoose
 const Lote = require("./models/Lote");
 const Observacion = require("./models/Observacion");
 const Productor = require("./models/Productor");
@@ -123,11 +122,10 @@ app.get("/", authenticateWeb, (req, res) => {
 });
 
 
-
+//ADMINISTRACIÓN DE LOTES
 app.get("/vista/lotes", authenticateWeb, async (req, res) => {
   try {
 
-    // 1. Buscar el usuario conectado
     const usuario = await User.findById(req.user.id)
       .select("role id_productor");
 
@@ -137,12 +135,11 @@ app.get("/vista/lotes", authenticateWeb, async (req, res) => {
       );
     }
 
-    // 2. Preparar el filtro de MongoDB
     const filtro = {};
 
     if (usuario.role === "productor") {
 
-      // El productor debe tener una asociación válida
+
       if (!usuario.id_productor) {
         return res.status(403).send(
           "No tienes un productor asociado"
@@ -194,8 +191,6 @@ app.get("/vista/lotes", authenticateWeb, async (req, res) => {
   }
 });
 
-
-// Validar los datos del formulario de lotes
 async function validarDatosLote(body) {
   const { nombre_numero, id_productor } = body;
 
@@ -376,6 +371,7 @@ app.post(
 );
 
 
+//ADMINISTRACIÓN DE PRODUCTORES
 app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const productores = await Productor.find();
@@ -393,7 +389,6 @@ app.get("/vista/productores", authenticateWeb, authorizeWeb("admin", "tecnico"),
     res.status(500).send("Error al cargar la vista de productores");
   }
 });
-
 
 app.post("/vista/productores", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
@@ -472,14 +467,13 @@ app.post("/vista/productores", authenticateWeb, authorizeWeb("admin"), async (re
         );
       }
 
-      // Preparar una sesión de MongoDB
       const session = await mongoose.startSession();
 
       try {
 
         await session.withTransaction(async () => {
 
-          // 1. Crear el productor
+          // Crear el productor
           const [nuevoProductor] = await Productor.create(
             [{
               nombre: nombre.trim(),
@@ -491,7 +485,7 @@ app.post("/vista/productores", authenticateWeb, authorizeWeb("admin"), async (re
             { session }
           );
 
-          // 2. Crear su cuenta de acceso
+          // Crear su cuenta de acceso
           await User.create(
             [{
               username: username.trim().toLowerCase(),
@@ -545,8 +539,6 @@ app.post("/vista/productores", authenticateWeb, authorizeWeb("admin"), async (re
   }
 );
 
-
-/* ADMINISTRACIÓN DE PRODUCTORES */
 app.get(
   "/vista/productores/:id/editar",
   authenticateWeb,
@@ -766,6 +758,7 @@ app.post(
 );
 
 
+//ADMINISTRACIÓN DE TÉCNICOS
 app.get("/vista/tecnicos", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const tecnicos = await Tecnico.find();
@@ -784,10 +777,9 @@ app.get("/vista/tecnicos", authenticateWeb, authorizeWeb("admin", "tecnico"), as
   }
 });
 
-
 app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
-      // 1. Comprobar el origen de la solicitud
+      // Comprobar el origen de la solicitud
       const origin = req.get("origin");
       const fetchSite = req.get("sec-fetch-site");
 
@@ -816,7 +808,7 @@ app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, 
         return res.status(403).send("Origen no verificable");
       }
 
-      // 2. Obtener los datos del formulario
+      // Obtener los datos del formulario
       const {
         nombre,
         apellido,
@@ -827,7 +819,7 @@ app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, 
         password
       } = req.body;
 
-      // 3. Validar campos obligatorios
+      // Validar campos obligatorios
       if (
         typeof nombre !== "string" ||
         !nombre.trim() ||
@@ -845,18 +837,18 @@ app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, 
         );
       }
 
-      // 4. Validar contraseña
+      // Validar contraseña
       if (password.length < 8) {
         return res.status(400).send(
           "La contraseña debe tener al menos 8 caracteres"
         );
       }
 
-      // 5. Normalizar los datos
+      // Normalizar los datos
       const usuarioNormalizado = username.trim().toLowerCase();
       const emailNormalizado = email.trim().toLowerCase();
 
-      // 6. Comprobar duplicados en users
+      // Comprobar duplicados en users
       const usuarioExistente = await User.findOne({
         $or: [
           { username: usuarioNormalizado },
@@ -870,7 +862,7 @@ app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, 
         );
       }
 
-      // 7. Iniciar transacción
+      // Iniciar transacción
       const session = await mongoose.startSession();
 
       try {
@@ -914,7 +906,7 @@ app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, 
         await session.endSession();
       }
 
-      // 8. Confirmar registro
+      // Confirmar registro
       return res.redirect("/vista/tecnicos?creado=1");
 
     } catch (error) {
@@ -942,14 +934,8 @@ app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, 
   }
 );
 
-
-/* ADMINISTRACIÓN DE TÉCNICOS */
 // Mostrar formulario de edición
-app.get(
-  "/vista/tecnicos/:id/editar",
-  authenticateWeb,
-  authorizeWeb("admin"),
-  async (req, res) => {
+app.get("/vista/tecnicos/:id/editar", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
       if (!mongoose.isObjectIdOrHexString(req.params.id)) {
         return res.status(400).send("ID de técnico inválido");
@@ -973,11 +959,7 @@ app.get(
 );
 
 // Guardar modificación
-app.post(
-  "/vista/tecnicos/:id/editar",
-  authenticateWeb,
-  authorizeWeb("admin"),
-  async (req, res) => {
+app.post("/vista/tecnicos/:id/editar", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -1074,11 +1056,7 @@ app.post(
 );
 
 // Eliminar técnico y cuenta asociada
-app.post(
-  "/vista/tecnicos/:id/eliminar",
-  authenticateWeb,
-  authorizeWeb("admin"),
-  async (req, res) => {
+app.post("/vista/tecnicos/:id/eliminar", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -1160,6 +1138,7 @@ app.post(
 );
 
 
+// ADMINISTRACIÓN DE TIPOS DE CULTIVO
 app.get("/vista/tipos-cultivo", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
   try {
     const tiposCultivo = await TipoCultivo.find();
@@ -1175,8 +1154,6 @@ app.get("/vista/tipos-cultivo", authenticateWeb, authorizeWeb("admin", "tecnico"
     res.status(500).send("Error al cargar la vista de tipos de cultivo");
   }
 });
-
-/* ADMINISTRACIÓN DE TIPOS DE CULTIVO */
 
 // Escapar caracteres especiales para búsquedas exactas
 function escaparRegexCultivo(texto) {
@@ -1250,11 +1227,7 @@ app.post(
 );
 
 // Mostrar formulario para editar
-app.get(
-  "/vista/tipos-cultivo/:id/editar",
-  authenticateWeb,
-  authorizeWeb("admin", "tecnico"),
-  async (req, res) => {
+app.get("/vista/tipos-cultivo/:id/editar", authenticateWeb, authorizeWeb("admin", "tecnico"),async (req, res) => {
     try {
       if (!mongoose.isObjectIdOrHexString(req.params.id)) {
         return res.status(400).send("ID de cultivo inválido");
@@ -1281,11 +1254,7 @@ app.get(
 );
 
 // Guardar cambios
-app.post(
-  "/vista/tipos-cultivo/:id/editar",
-  authenticateWeb,
-  authorizeWeb("admin", "tecnico"),
-  async (req, res) => {
+app.post("/vista/tipos-cultivo/:id/editar", authenticateWeb, authorizeWeb("admin", "tecnico"),async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -1354,11 +1323,7 @@ app.post(
 );
 
 // Eliminar tipo de cultivo
-app.post(
-  "/vista/tipos-cultivo/:id/eliminar",
-  authenticateWeb,
-  authorizeWeb("admin"),
-  async (req, res) => {
+app.post("/vista/tipos-cultivo/:id/eliminar", authenticateWeb,authorizeWeb("admin"), async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -1394,6 +1359,7 @@ app.post(
 );
 
 
+// ADMINISTRACIÓN DE USUARIOS
 app.get("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
       // Obtener usuarios registrados
@@ -1426,10 +1392,7 @@ app.get("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, r
         _id: { $nin: idsTecnicosConCuenta }
       }).sort({ apellido: 1, nombre: 1 });
 
-
-
       // Enviar los datos a la vista Pug
-      
       res.render("usuarios", {
         title: "Listado de Usuarios",
         usuarios,
@@ -1455,10 +1418,9 @@ app.get("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, r
   }
 );
 
-
 app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
-      // 1. Comprobar el origen de la solicitud
+      // Comprobar el origen de la solicitud
       const origin = req.get("origin");
       const fetchSite = req.get("sec-fetch-site");
 
@@ -1487,14 +1449,14 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
         return res.status(403).send("Origen no verificable");
       }
 
-      // 2. Comprobar que el administrador siga autorizado
+      // Comprobar que el administrador siga autorizado
       const adminActual = await User.findById(req.user.id);
 
       if (!adminActual || adminActual.role !== "admin") {
         return res.status(403).send("Permisos insuficientes");
       }
 
-      // 3. Obtener los campos del formulario
+      // Obtener los campos del formulario
        const {
         username,
         password,
@@ -1507,7 +1469,7 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
       } = req.body;
 
 
-      // 4. Validar los campos obligatorios
+      // Validar los campos obligatorios
       if (
         !username ||
         !password ||
@@ -1519,14 +1481,14 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
         throw new Error("Todos los campos son obligatorios");
       }
 
-      // 5. Validar el rol
+      // Validar el rol
       const rolesValidos = ["admin", "tecnico", "productor"];
 
       if (!rolesValidos.includes(role)) {
         throw new Error("El rol seleccionado no es válido");
       }
 
-      // 6. Validar la contraseña
+      // Validar la contraseña
       if (password.length < 8) {
         throw new Error(
           "La contraseña debe tener al menos 8 caracteres"
@@ -1534,7 +1496,7 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
       }
 
 
-      // 7. Preparar los datos del usuario
+      // Preparar los datos del usuario
       const datosUsuario = {
         username: username.trim().toLowerCase(),
         password,
@@ -1544,7 +1506,7 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
         role
       };
 
-      // 8. Asociar un productor cuando corresponda
+      // Asociar un productor cuando corresponda
       if (role === "productor") {
 
         if (!id_productor) {
@@ -1718,7 +1680,6 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
   }
 );
 
-
 function validarOrigenAdministracion(req) {
   const origin = req.get("origin");
   const fetchSite = req.get("sec-fetch-site");
@@ -1746,11 +1707,7 @@ function validarOrigenAdministracion(req) {
 }
 
 // Mostrar formulario de edición
-app.get(
-  "/vista/usuarios/:id/editar",
-  authenticateWeb,
-  authorizeWeb("admin"),
-  async (req, res) => {
+app.get("/vista/usuarios/:id/editar", authenticateWeb, authorizeWeb("admin"),async (req, res) => {
     try {
       if (!mongoose.isObjectIdOrHexString(req.params.id)) {
         return res.status(400).send("ID de usuario inválido");
@@ -1774,11 +1731,7 @@ app.get(
 );
 
 // Guardar cambios del usuario
-app.post(
-  "/vista/usuarios/:id/editar",
-  authenticateWeb,
-  authorizeWeb("admin"),
-  async (req, res) => {
+app.post("/vista/usuarios/:id/editar", authenticateWeb, authorizeWeb("admin"),async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -1842,11 +1795,7 @@ app.post(
 );
 
 // Eliminar exclusivamente la cuenta de usuario
-app.post(
-  "/vista/usuarios/:id/eliminar",
-  authenticateWeb,
-  authorizeWeb("admin"),
-  async (req, res) => {
+app.post("/vista/usuarios/:id/eliminar", authenticateWeb, authorizeWeb("admin"), async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -1890,12 +1839,11 @@ app.post(
   }
 );
 
-
 app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
   try {
     const mongoose = require("mongoose");
 
-    // 1. Buscar al usuario que inició sesión
+    // Buscar al usuario que inició sesión
     const usuario = await User.findById(req.user.id)
       .select("role id_productor");
 
@@ -1903,17 +1851,17 @@ app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
       return res.status(401).send("Usuario no encontrado");
     }
 
-    // 2. Comprobar que tenga un rol permitido
+    // Comprobar que tenga un rol permitido
     if (!["admin", "tecnico", "productor"].includes(usuario.role)) {
       return res.status(403).send("Acceso denegado");
     }
 
-    // 3. Validar el ID del lote
+    // Validar el ID del lote
     if (!mongoose.isObjectIdOrHexString(req.params.id)) {
       return res.status(400).send("ID de lote no válido");
     }
 
-    // 4. Preparar la consulta
+    // Preparar la consulta
     const filtro = {
       _id: req.params.id
     };
@@ -1930,7 +1878,7 @@ app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
       filtro.id_productor = usuario.id_productor;
     }
 
-    // 5. Buscar el lote con los permisos aplicados
+    // Buscar el lote con los permisos aplicados
     const lote = await Lote.findOne(filtro)
       .populate("id_productor");
 
@@ -1938,7 +1886,7 @@ app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
       return res.status(404).send("Lote no encontrado");
     }
 
-    // 6. Consultar las observaciones de ese lote
+    // Consultar las observaciones de ese lote
     
     const filtroObservaciones = {
       id_lote: lote._id
@@ -1964,7 +1912,7 @@ app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
 
     const observaciones = await consultaObservaciones;
 
-    // 7. Mostrar el detalle
+    // Mostrar el detalle
     return res.render("lote_detalle", {
       title: `Detalle del Lote ${lote.nombre_numero}`,
       lote,
@@ -1989,7 +1937,7 @@ app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
 });
 
 
-// ADMINISTRACIÓN WEB DE OBSERVACIONES
+// ADMINISTRACIÓN DE OBSERVACIONES
 // Validar los datos comunes de una observación
 async function validarFormularioObservacion(body) {
   const {
@@ -2108,11 +2056,7 @@ app.get(
 );
 
 // Registrar observación
-app.post(
-  "/vista/lotes/:id/observaciones",
-  authenticateWeb,
-  authorizeWeb("admin", "tecnico"),
-  async (req, res) => {
+app.post("/vista/lotes/:id/observaciones", authenticateWeb, authorizeWeb("admin", "tecnico"),async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -2133,7 +2077,6 @@ app.post(
 
       if (req.user.role === "tecnico") {
         // Obtener al técnico desde la cuenta autenticada.
-        // Nunca confiar en un ID enviado por el formulario.
         const usuario = await User.findById(req.user.id)
           .select("id_tecnico");
 
@@ -2195,11 +2138,7 @@ app.post(
 );
 
 // Formulario para editar observación
-app.get(
-  "/vista/observaciones/:id/editar",
-  authenticateWeb,
-  authorizeWeb("admin", "tecnico"),
-  async (req, res) => {
+app.get("/vista/observaciones/:id/editar", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
     try {
       if (!mongoose.isObjectIdOrHexString(req.params.id)) {
         return res.status(400).send("ID inválido");
@@ -2249,11 +2188,7 @@ app.get(
 );
 
 // Guardar modificación
-app.post(
-  "/vista/observaciones/:id/editar",
-  authenticateWeb,
-  authorizeWeb("admin", "tecnico"),
-  async (req, res) => {
+app.post("/vista/observaciones/:id/editar", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -2298,11 +2233,7 @@ app.post(
 );
 
 // Dar de baja sin borrar físicamente
-app.post(
-  "/vista/observaciones/:id/eliminar",
-  authenticateWeb,
-  authorizeWeb("admin", "tecnico"),
-  async (req, res) => {
+app.post("/vista/observaciones/:id/eliminar", authenticateWeb, authorizeWeb("admin", "tecnico"), async (req, res) => {
     try {
       if (!validarOrigenAdministracion(req)) {
         return res.status(403).send("Origen no permitido");
@@ -2336,7 +2267,6 @@ app.post(
     }
   }
 );
-
 
 app.use((req, res) => {
   res.status(404).json({ error: "Ruta no encontrada" });
