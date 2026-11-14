@@ -121,7 +121,6 @@ app.get("/", authenticateWeb, (req, res) => {
   });
 });
 
-
 //ADMINISTRACIÓN DE LOTES
 app.get("/vista/lotes", authenticateWeb, async (req, res) => {
   try {
