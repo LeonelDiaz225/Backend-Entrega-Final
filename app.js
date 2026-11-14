@@ -234,7 +234,7 @@ app.post(
 
       await Lote.create(datos);
 
-      return res.redirect("/vista/lotes?creado=1");
+      return res.redirect(303, "/vista/lotes?creado=1");
     } catch (error) {
       console.error("Error al crear lote:", error.message);
       return res.status(500).send("No se pudo crear el lote");
@@ -319,7 +319,7 @@ app.post(
       lote.set(datos);
       await lote.save();
 
-      return res.redirect("/vista/lotes?editado=1");
+      return res.redirect(303, "/vista/lotes?editado=1");
 
     } catch (error) {
       console.error("Error al editar lote:", error.message);
@@ -361,7 +361,7 @@ app.post(
 
       await Lote.deleteOne({ _id: lote._id });
 
-      return res.redirect("/vista/lotes?eliminado=1");
+      return res.redirect(303, "/vista/lotes?eliminado=1");
 
     } catch (error) {
       console.error("Error al eliminar lote:", error.message);
@@ -507,7 +507,7 @@ app.post("/vista/productores", authenticateWeb, authorizeWeb("admin"), async (re
       }
 
       // Redirigir después de finalizar la transacción
-      return res.redirect("/vista/productores?creado=1");
+      return res.redirect(303, "/vista/productores?creado=1");
 
 
     } catch (error) {
@@ -655,7 +655,7 @@ app.post(
         await session.endSession();
       }
 
-      return res.redirect("/vista/productores?editado=1");
+      return res.redirect(303, "/vista/productores?editado=1");
 
     } catch (error) {
       console.error("Error al editar productor:", error.message);
@@ -741,7 +741,7 @@ app.post(
         await session.endSession();
       }
 
-      return res.redirect("/vista/productores?eliminado=1");
+      return res.redirect(303, "/vista/productores?eliminado=1");
 
     } catch (error) {
       console.error("Error al eliminar productor:", error.message);
@@ -907,7 +907,7 @@ app.post("/vista/tecnicos", authenticateWeb, authorizeWeb("admin"), async (req, 
       }
 
       // Confirmar registro
-      return res.redirect("/vista/tecnicos?creado=1");
+      return res.redirect(303, "/vista/tecnicos?creado=1");
 
     } catch (error) {
       console.error(
@@ -1031,7 +1031,7 @@ app.post("/vista/tecnicos/:id/editar", authenticateWeb, authorizeWeb("admin"), a
         await session.endSession();
       }
 
-      return res.redirect("/vista/tecnicos?editado=1");
+      return res.redirect(303, "/vista/tecnicos?editado=1");
 
     } catch (error) {
       console.error("Error al editar técnico:", error.message);
@@ -1123,7 +1123,7 @@ app.post("/vista/tecnicos/:id/eliminar", authenticateWeb, authorizeWeb("admin"),
         await session.endSession();
       }
 
-      return res.redirect("/vista/tecnicos?eliminado=1");
+      return res.redirect(303, "/vista/tecnicos?eliminado=1");
 
     } catch (error) {
       console.error("Error al eliminar técnico:", error.message);
@@ -1208,7 +1208,7 @@ app.post(
 
       await TipoCultivo.create({ nombre: nombreLimpio });
 
-      return res.redirect("/vista/tipos-cultivo?creado=1");
+      return res.redirect(303, "/vista/tipos-cultivo?creado=1");
 
     } catch (error) {
       console.error("Error al crear cultivo:", error.message);
@@ -1304,7 +1304,7 @@ app.post("/vista/tipos-cultivo/:id/editar", authenticateWeb, authorizeWeb("admin
       cultivo.nombre = nombreLimpio;
       await cultivo.save();
 
-      return res.redirect("/vista/tipos-cultivo?editado=1");
+      return res.redirect(303, "/vista/tipos-cultivo?editado=1");
 
     } catch (error) {
       console.error("Error al editar cultivo:", error.message);
@@ -1347,7 +1347,7 @@ app.post("/vista/tipos-cultivo/:id/eliminar", authenticateWeb,authorizeWeb("admi
 
       await TipoCultivo.deleteOne({ _id: cultivo._id });
 
-      return res.redirect("/vista/tipos-cultivo?eliminado=1");
+      return res.redirect(303, "/vista/tipos-cultivo?eliminado=1");
 
     } catch (error) {
       console.error("Error al eliminar cultivo:", error.message);
@@ -1612,7 +1612,7 @@ app.post("/vista/usuarios", authenticateWeb, authorizeWeb("admin"), async (req, 
       await User.create(datosUsuario);
 
       // 10. Mostrar confirmación
-      return res.redirect("/vista/usuarios?creado=1");
+      return res.redirect(303, "/vista/usuarios?creado=1");
 
     } catch (error) {
       console.error(
@@ -1775,7 +1775,7 @@ app.post("/vista/usuarios/:id/editar", authenticateWeb, authorizeWeb("admin"),as
 
       await usuario.save();
 
-      return res.redirect("/vista/usuarios?editado=1");
+      return res.redirect(303, "/vista/usuarios?editado=1");
     } catch (error) {
       console.error("Error al editar usuario:", error.message);
 
@@ -1831,7 +1831,7 @@ app.post("/vista/usuarios/:id/eliminar", authenticateWeb, authorizeWeb("admin"),
 
       await User.findByIdAndDelete(usuario._id);
 
-      return res.redirect("/vista/usuarios?eliminado=1");
+      return res.redirect(303, "/vista/usuarios?eliminado=1");
     } catch (error) {
       console.error("Error al eliminar usuario:", error.message);
       return res.status(500).send("No se pudo eliminar el usuario");
@@ -2125,6 +2125,7 @@ app.post("/vista/lotes/:id/observaciones", authenticateWeb, authorizeWeb("admin"
       });
 
       return res.redirect(
+        303,
         "/vista/lotes/" + lote._id + "?creada=1"
       );
 
@@ -2220,6 +2221,7 @@ app.post("/vista/observaciones/:id/editar", authenticateWeb, authorizeWeb("admin
       }
 
       return res.redirect(
+        303,
         "/vista/lotes/" + observacion.id_lote + "?editada=1"
       );
 
@@ -2256,6 +2258,7 @@ app.post("/vista/observaciones/:id/eliminar", authenticateWeb, authorizeWeb("adm
       }
 
       return res.redirect(
+        303,
         "/vista/lotes/" + observacion.id_lote + "?baja=1"
       );
 
