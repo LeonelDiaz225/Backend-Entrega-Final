@@ -53,6 +53,20 @@ const swaggerSpec = swaggerJSDoc({
 app.get("/api-docs.json", (req, res) => {
   res.json(swaggerSpec);
 });
+const swaggerAsset = (filename) => (req, res) => {
+  res.sendFile(path.join(swaggerUiDist.getAbsoluteFSPath(), filename));
+};
+app.get("/api-docs/swagger-ui.css", swaggerAsset("swagger-ui.css"));
+app.get(
+  "/api-docs/swagger-ui-bundle.js",
+  swaggerAsset("swagger-ui-bundle.js")
+);
+app.get(
+  "/api-docs/swagger-ui-standalone-preset.js",
+  swaggerAsset("swagger-ui-standalone-preset.js")
+);
+app.get("/api-docs/favicon-32x32.png", swaggerAsset("favicon-32x32.png"));
+app.get("/api-docs/favicon-16x16.png", swaggerAsset("favicon-16x16.png"));
 app.use(
   "/api-docs",
   express.static(swaggerUiDist.getAbsoluteFSPath()),
