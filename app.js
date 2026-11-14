@@ -106,7 +106,7 @@ app.post("/logout", (req, res) => {
     sameSite: "lax"
   });
 
-  return res.redirect("/login");
+  return res.redirect(303, "/login");
 });
 
 
