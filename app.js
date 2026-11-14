@@ -123,7 +123,6 @@ app.get("/", authenticateWeb, (req, res) => {
 });
 
 
-
 app.get("/vista/lotes", authenticateWeb, async (req, res) => {
   try {
 

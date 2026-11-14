@@ -14,7 +14,7 @@ block content
   if eliminado
     p.success-message Tipo de cultivo eliminado correctamente.
 
-  //- Solo el administrador puede registrar cultivos
+
   if rolUsuario === "admin" || rolUsuario === "tecnico"
     section.panel
       h2 Registrar nuevo tipo de cultivo

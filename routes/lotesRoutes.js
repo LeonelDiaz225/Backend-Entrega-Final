@@ -8,7 +8,6 @@ const {
   authorize
 } = require("../middleware/auth");
 
-// Todas las rutas requieren autenticación
 router.use(authenticate);
 
 // CONSULTAR LOTES
