@@ -12,7 +12,7 @@ const authenticateWeb = async (req, res, next) => {
     .find(cookie => cookie.startsWith("agrotec_token="));
 
   if (!tokenCookie) {
-    return res.redirect("/login");
+    return res.redirect(303, "/login");
   }
 
   const token = tokenCookie.substring("agrotec_token=".length);
@@ -23,7 +23,7 @@ const authenticateWeb = async (req, res, next) => {
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    return res.redirect("/login");
+    return res.redirect(303, "/login");
   }
 
   // Consultar el usuario actual en MongoDB
@@ -32,7 +32,7 @@ const authenticateWeb = async (req, res, next) => {
       .select("username role id_productor");
 
     if (!usuario) {
-      return res.redirect("/login");
+      return res.redirect(303, "/login");
     }
 
     // Guardar los datos actuales en la petición

@@ -3,7 +3,7 @@ const authorizeWeb = (...rolesPermitidos) => {
 
     // Verificar que exista un usuario autenticado
     if (!req.user) {
-      return res.redirect("/login");
+      return res.redirect(303, "/login");
     }
 
     // Verificar si su rol tiene permiso
