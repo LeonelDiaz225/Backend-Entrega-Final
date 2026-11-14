@@ -10,6 +10,7 @@ Express, MongoDB y Mongoose.
 | Recurso | Enlace |
 | --- | --- |
 | Repositorio | [GitHub](https://github.com/LeonelDiaz225/Backend-Entrega-Final.git) |
+| Aplicación desplegada | [AgroTec en Vercel](https://backend-entrega-final-eight.vercel.app/login) |
 | Carpeta de documentación | [Google Drive](https://drive.google.com/drive/folders/15tbDKWcteGK1vAPrlIW_IRnS0gEkEigq?hl=es) |
 | Video de presentación | Completar |
 
@@ -67,7 +68,7 @@ AgroTec reemplaza el registro manual de controles agrícolas y permite:
 | Swagger JSDoc | Generación de documentación OpenAPI |
 | migrate-mongo | Migraciones |
 | Jest + Supertest | Pruebas automatizadas |
-| Render | Configuración de despliegue |
+| Vercel | Despliegue serverless de la aplicación |
 
 ## Arquitectura
 
@@ -91,11 +92,13 @@ El arranque está separado en dos responsabilidades:
 Agrotec_Entrega_Final/
 ├── app.js
 ├── server.js
+├── index.js
 ├── package.json
 ├── package-lock.json
 ├── .env.example
 ├── prod.env
 ├── render.yaml
+├── vercel.json
 ├── README.md
 ├── assets/
 │   ├── DSWB_2A_YodaLabs-Informe_2C26.docx
@@ -125,6 +128,8 @@ Agrotec_Entrega_Final/
 │   └── 20261012190000-seed-initial-data.js
 ├── middleware/
 │   ├── auth.js
+│   ├── authWeb.js
+│   ├── authorizeWeb.js
 │   ├── errorHandler.js
 │   └── requestLogger.js
 ├── models/
@@ -189,8 +194,8 @@ MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
 
 ### Producción y MongoDB Atlas
 
-`prod.env` se utiliza únicamente cuando se ejecuta `npm run start:prod`.
-Debe contener valores reales y permanecer fuera de Git:
+Para ejecutar el servidor de producción localmente, `prod.env` contiene los
+valores reales y permanece fuera de Git:
 
 ```env
 NODE_ENV=production
@@ -201,6 +206,21 @@ JWT_SECRET=una-clave-larga-y-privada
 JWT_EXPIRES_IN=2h
 MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
 ```
+
+En Vercel no se sube `prod.env`. Las mismas variables se configuran desde
+**Project Settings > Environment Variables**, seleccionando al menos el entorno
+**Production**:
+
+```text
+NODE_ENV=production
+MONGO_URI=mongodb+srv://USUARIO:CONTRASEÑA@cluster.mongodb.net/agrotec
+MONGO_DB_NAME=agrotec
+JWT_SECRET=una-clave-larga-y-privada
+JWT_EXPIRES_IN=2h
+MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
+```
+
+`PORT` no se configura en Vercel porque la plataforma administra el puerto.
 
 Nunca publicar en GitHub:
 
@@ -269,9 +289,12 @@ ver las colecciones y documentos creados por la aplicación.
 
 1. Crear un cluster.
 2. Crear un usuario de base de datos.
-3. Agregar la IP del equipo en **Network Access**.
+3. En **Network Access**, agregar la IP permitida. Para Vercel, cuyas IP
+   pueden variar, se puede usar temporalmente `0.0.0.0/0` con un usuario y
+   contraseña seguros.
 4. Copiar la URI desde **Connect > Drivers**.
-5. Colocar la URI completa en `prod.env`.
+5. Colocar la URI completa en `prod.env` para ejecución local o en `MONGO_URI`
+   dentro de Vercel.
 6. Ejecutar migración y seed de producción.
 
 Compass también puede conectarse directamente usando la URI de Atlas.
@@ -359,6 +382,8 @@ Authorization: Bearer <TOKEN>
 ## Endpoints
 
 Base local: `http://localhost:3000`.
+
+Base pública: `https://backend-entrega-final-eight.vercel.app`.
 
 ### Sistema y documentación
 
@@ -658,21 +683,51 @@ existencia de productores, lotes, técnicos y tipos de cultivo.
 
 ## Despliegue
 
-El archivo `render.yaml` define:
-
-- Servicio web Node.
-- `npm ci` como build command.
-- `npm start` como start command.
-- `/health` como health check.
-- Variables de entorno requeridas.
-
-En Render configurar como variables privadas:
+La aplicación está desplegada en Vercel:
 
 ```text
-MONGO_URI
-MONGO_DB_NAME
-JWT_SECRET
-JWT_EXPIRES_IN
+https://backend-entrega-final-eight.vercel.app/login
+```
+
+El repositorio conectado al proyecto es:
+
+```text
+LeonelDiaz225/Backend-Entrega-Final
+```
+
+El archivo `render.yaml` se conserva como configuración histórica para Render;
+no interviene en el deployment actual de Vercel.
+
+### Configuración de Vercel
+
+El archivo `index.js` funciona como entrypoint serverless. Conecta con
+MongoDB una vez por instancia y delega las solicitudes a `app.js`. El archivo
+`vercel.json` envía las rutas de la aplicación a ese entrypoint.
+
+En el proyecto de Vercel configurar:
+
+- **Framework Preset:** `Other`.
+- **Build Command:** `npm ci`.
+- **Output Directory:** vacío.
+- **Root Directory:** `/`.
+- Variables `NODE_ENV`, `MONGO_URI`, `MONGO_DB_NAME`, `JWT_SECRET`,
+  `JWT_EXPIRES_IN` y `MONGO_DNS_SERVERS` para **Production**.
+
+Después de cambiar variables o código, generar un nuevo deployment. Verificar
+en los logs que el repositorio clonado sea el correcto y probar:
+
+```text
+GET https://backend-entrega-final-eight.vercel.app/health
+GET https://backend-entrega-final-eight.vercel.app/api-docs
+GET https://backend-entrega-final-eight.vercel.app/login
+```
+
+Las migraciones y el seed se ejecutan manualmente contra MongoDB Atlas, no
+dentro de cada invocación serverless:
+
+```powershell
+npm run migrate:up:prod
+npm run seed:prod
 ```
 
 No colocar credenciales dentro del repositorio. Antes de desplegar verificar:
@@ -702,7 +757,7 @@ npm audit --omit=dev --audit-level=high
 | Variables de entorno | Implementado |
 | Pruebas automatizadas | Implementado con Jest y Supertest |
 | Documentación de API | Implementado con Swagger/OpenAPI |
-| Despliegue | Configuración Render incluida |
+| Despliegue | Publicado en Vercel con MongoDB Atlas |
 
 ## Mejoras futuras
 

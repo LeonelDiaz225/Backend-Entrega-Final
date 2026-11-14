@@ -213,7 +213,7 @@ exports.loginWeb = async (req, res) => {
       maxAge: 2 * 60 * 60 * 1000
     });
 
-    return res.redirect("/");
+    return res.redirect(303, "/");
 
   } catch (error) {
     console.error("Error en login web:", error.message);

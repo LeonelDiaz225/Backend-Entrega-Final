@@ -1,15 +1,20 @@
 const path = require("path");
 const dotenv = require("dotenv");
 
-const envFile = process.env.NODE_ENV === "production" ? "prod.env" : ".env";
-const result = dotenv.config({ path: path.join(__dirname, "..", envFile), quiet: true });
+const isProduction = process.env.NODE_ENV === "production";
+const envFile = isProduction ? "prod.env" : ".env";
 
-if (result.error && process.env.NODE_ENV === "production") {
-  throw new Error(`No se pudo cargar ${envFile}: ${result.error.message}`);
+dotenv.config({
+  path: path.join(__dirname, "..", envFile),
+  quiet: true,
+});
+
+if (isProduction && !process.env.MONGO_URI) {
+  throw new Error("MONGO_URI debe estar configurado");
 }
 
-if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET debe estar configurado en producción");
+if (isProduction && !process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET debe estar configurado");
 }
 
 module.exports = { envFile };
