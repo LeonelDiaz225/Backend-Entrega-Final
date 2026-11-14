@@ -28,7 +28,7 @@ block content
 
     if observaciones.length > 0
       .table-wrap
-        table.data-table
+        table.data-table.tabla-observaciones
           thead
             tr
               th ID
@@ -72,20 +72,22 @@ block content
                 if rolUsuario !== "productor"
                   td= obs.activa ? "Activa" : "Inactiva"
 
+                  
                   td
                     if obs.activa
-                      a.btn.btn-primary(
-                        href="/vista/observaciones/" + obs._id + "/editar"
-                      ) Editar
+                      .acciones-observacion
+                        a.btn.btn-primary(
+                          href="/vista/observaciones/" + obs._id + "/editar"
+                        ) Editar
 
-                      form(
-                        method="POST"
-                        action="/vista/observaciones/" + obs._id + "/eliminar"
-                        style="display:inline-block; margin-left:8px;"
-                        onsubmit="return confirm('¿Eliminar esta observación? Se conservará en el historial.');"
-                      )
-                        button.btn(type="submit") Eliminar 
+                        form(
+                          method="POST"
+                          action="/vista/observaciones/" + obs._id + "/eliminar"
+                          onsubmit="return confirm('¿Eliminar esta observación? Se conservará en el historial.');"
+                        )
+                          button.btn(type="submit") Eliminar
                     else
                       span Registro histórico
+
     else
       p.empty-state No hay observaciones registradas para este lote.

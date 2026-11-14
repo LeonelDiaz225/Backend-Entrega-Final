@@ -647,6 +647,45 @@ form[action$="/eliminar"] button:hover {
   line-height: 1.2;
 }
 
+
+/* HISTORIAL DE OBSERVACIONES - ACCIONES*/
+
+/* Celda de acciones */
+.tabla-observaciones td:last-child {
+  vertical-align: middle;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Contenedor de ambos botones */
+.tabla-observaciones .acciones-observacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Formulario del botón Eliminar */
+.tabla-observaciones .acciones-observacion form {
+  display: inline-flex;
+  margin: 0;
+}
+
+/* Ambos botones del mismo tamaño */
+.tabla-observaciones .acciones-observacion a.btn,
+.tabla-observaciones .acciones-observacion form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 105px;
+  min-height: 44px;
+  padding: 10px 12px;
+  margin: 0;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+
 /* Ajustes para celulares */
 @media (max-width: 480px) {
   .login-logo {
