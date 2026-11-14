@@ -50,7 +50,7 @@ block content
                 td= lote.nombre_numero
                 td= lote.id_productor ? lote.id_productor.nombre + " " + lote.id_productor.apellido : "Sin asignar"
                 td
-                  a(href="/vista/lotes/" + lote._id) Ver historial
+                  a(href="/vista/lotes/" + lote._id) Observaciones
 
                   if rolUsuario === "admin" || rolUsuario === "tecnico"
                     a.btn.btn-primary(

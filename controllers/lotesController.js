@@ -308,39 +308,103 @@ exports.create = async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+
 exports.update = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ error: "ID de lote no válido" });
+    // 1. Validar el ID del lote
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+      return res.status(400).json({
+        error: "ID de lote no válido"
+      });
+    }
+
+    // 2. Buscar el lote
+    const lote = await Lote.findById(req.params.id);
+
+    if (!lote) {
+      return res.status(404).json({
+        error: "Lote no encontrado"
+      });
     }
 
     const { nombre_numero, id_productor } = req.body;
 
-    if (id_productor) {
-      if (!mongoose.Types.ObjectId.isValid(id_productor)) {
-        return res.status(400).json({ error: "ID de productor no válido" });
+    // 3. Validar nombre, si fue enviado
+    if (nombre_numero !== undefined) {
+      if (
+        typeof nombre_numero !== "string" ||
+        !nombre_numero.trim()
+      ) {
+        return res.status(400).json({
+          error: "El nombre del lote no es válido"
+        });
       }
-      const productor = await Productor.findById(id_productor);
-      if (!productor) {
-        return res.status(400).json({ error: "El Id productor no existe" });
-      }
+
+      lote.nombre_numero = nombre_numero.trim();
     }
 
-    const loteActualizado = await Lote.findByIdAndUpdate(
-      req.params.id,
-      { nombre_numero, id_productor },
-      { new: true, runValidators: true }
+    // 4. Validar cambio de productor
+    if (id_productor !== undefined) {
+      if (
+        typeof id_productor !== "string" ||
+        !mongoose.isObjectIdOrHexString(id_productor)
+      ) {
+        return res.status(400).json({
+          error: "ID de productor no válido"
+        });
+      }
+
+      const productor = await Productor.findById(id_productor);
+
+      if (!productor) {
+        return res.status(400).json({
+          error: "El productor no existe"
+        });
+      }
+
+      // Comprobar si realmente cambia el propietario
+      const cambiaProductor =
+        String(lote.id_productor) !== String(productor._id);
+
+      if (cambiaProductor) {
+        // Incluir observaciones activas e inactivas
+        const tieneObservaciones = await Observacion.exists({
+          id_lote: lote._id
+        });
+
+        if (tieneObservaciones) {
+          return res.status(409).json({
+            error: "No se puede cambiar el productor de un lote con observaciones"
+          });
+        }
+      }
+
+      lote.id_productor = productor._id;
+    }
+
+    // 5. Guardar los cambios validados
+    await lote.save();
+
+    return res.status(200).json(lote);
+
+  } catch (error) {
+    console.error(
+      "Error al modificar lote:",
+      error.message
     );
 
-    if (!loteActualizado) {
-      return res.status(404).json({ error: "Lote no encontrado" });
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        error: "Datos del lote inválidos"
+      });
     }
 
-    res.status(200).json(loteActualizado);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    return res.status(500).json({
+      error: "No se pudo modificar el lote"
+    });
   }
 };
+
 
 /**
  * @openapi

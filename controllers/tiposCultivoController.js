@@ -1,5 +1,23 @@
 const mongoose = require("mongoose");
 const TipoCultivo = require("../models/TipoCultivo");
+const Observacion = require("../models/Observacion");
+
+
+function escaparRegex(texto) {
+  return texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function cultivoTieneObservaciones(nombre) {
+  const observacion = await Observacion.exists({
+    tipo_cultivo: {
+      $regex: "^" + escaparRegex(nombre) + "$",
+      $options: "i"
+    }
+  });
+
+  return Boolean(observacion);
+}
+
 
 /**
  * @openapi
@@ -201,35 +219,87 @@ exports.create = async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+
 exports.update = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ error: "ID de tipo de cultivo no válido" });
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+      return res.status(400).json({
+        error: "ID de cultivo no válido"
+      });
     }
 
     const { nombre } = req.body;
-    if (!nombre || !nombre.trim()) {
-      return res.status(400).json({ error: "El nombre del cultivo es obligatorio" });
+
+    if (typeof nombre !== "string" || !nombre.trim()) {
+      return res.status(400).json({
+        error: "El nombre del cultivo es obligatorio"
+      });
     }
 
-    const tipoActualizado = await TipoCultivo.findByIdAndUpdate(
-      req.params.id,
-      { nombre: nombre.trim() },
-      { new: true, runValidators: true }
-    );
+    const nuevoNombre = nombre.trim();
 
-    if (!tipoActualizado) {
-      return res.status(404).json({ error: "Tipo de cultivo no encontrado" });
+    const cultivo = await TipoCultivo.findById(req.params.id);
+
+    if (!cultivo) {
+      return res.status(404).json({
+        error: "Tipo de cultivo no encontrado"
+      });
     }
 
-    res.status(200).json(tipoActualizado);
+    // Evitar nombres duplicados
+    const duplicado = await TipoCultivo.findOne({
+      _id: { $ne: cultivo._id },
+      nombre: {
+        $regex: "^" + escaparRegex(nuevoNombre) + "$",
+        $options: "i"
+      }
+    });
+
+    if (duplicado) {
+      return res.status(409).json({
+        error: "Ya existe otro tipo de cultivo con ese nombre"
+      });
+    }
+
+    // Proteger el historial de observaciones
+    if (cultivo.nombre !== nuevoNombre) {
+      const estaEnUso = await cultivoTieneObservaciones(
+        cultivo.nombre
+      );
+
+      if (estaEnUso) {
+        return res.status(409).json({
+          error: "No se puede modificar un cultivo utilizado en observaciones"
+        });
+      }
+    }
+
+    cultivo.nombre = nuevoNombre;
+    await cultivo.save();
+
+    return res.status(200).json(cultivo);
+
   } catch (error) {
+    console.error("Error al modificar cultivo:", error.message);
+
     if (error.code === 11000) {
-      return res.status(400).json({ error: "El tipo de cultivo ya existe" });
+      return res.status(409).json({
+        error: "El tipo de cultivo ya existe"
+      });
     }
-    res.status(400).json({ error: error.message });
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        error: "Datos del cultivo inválidos"
+      });
+    }
+
+    return res.status(500).json({
+      error: "No se pudo modificar el cultivo"
+    });
   }
 };
+
 
 /**
  * @openapi
@@ -270,19 +340,52 @@ exports.update = async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+
 exports.delete = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ error: "ID de tipo de cultivo no válido" });
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        error: "Solo el administrador puede eliminar cultivos"
+      });
     }
 
-    const eliminado = await TipoCultivo.findByIdAndDelete(req.params.id);
-    if (!eliminado) {
-      return res.status(404).json({ error: "Tipo de cultivo no encontrado" });
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+      return res.status(400).json({
+        error: "ID de cultivo no válido"
+      });
     }
 
-    res.status(200).json({ mensaje: "Tipo de cultivo eliminado correctamente" });
+    const cultivo = await TipoCultivo.findById(req.params.id);
+
+    if (!cultivo) {
+      return res.status(404).json({
+        error: "Tipo de cultivo no encontrado"
+      });
+    }
+
+    const estaEnUso = await cultivoTieneObservaciones(
+      cultivo.nombre
+    );
+
+    if (estaEnUso) {
+      return res.status(409).json({
+        error: "No se puede eliminar un cultivo utilizado en observaciones"
+      });
+    }
+
+    await TipoCultivo.deleteOne({
+      _id: cultivo._id
+    });
+
+    return res.status(200).json({
+      mensaje: "Tipo de cultivo eliminado correctamente"
+    });
+
   } catch (error) {
-    res.status(500).json({ error: "Error al eliminar el tipo de cultivo" });
+    console.error("Error al eliminar cultivo:", error.message);
+
+    return res.status(500).json({
+      error: "No se pudo eliminar el cultivo"
+    });
   }
 };

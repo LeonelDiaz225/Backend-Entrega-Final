@@ -2,10 +2,30 @@ extends layout
 
 block content
   a.back-link(href="/vista/lotes") ← Volver a lotes
+
   h1.page-title= title
   p.subtitle Historial de observaciones del lote.
+
+  if creada
+    p.success-message Observación registrada correctamente.
+
+  if editada
+    p.success-message Observación modificada correctamente.
+
+  if baja
+    p.success-message Observación dada de baja correctamente.
+
+  if rolUsuario === "admin" || rolUsuario === "tecnico"
+    section.panel
+      h2 Administración de observaciones
+
+      a.btn.btn-primary(
+        href="/vista/lotes/" + lote._id + "/observaciones/nueva"
+      ) Registrar observación
+
   section.panel
     h2 Historial de observaciones
+
     if observaciones.length > 0
       .table-wrap
         table.data-table
@@ -13,28 +33,59 @@ block content
             tr
               th ID
               th Fecha
-              th Técnico
+
+              if rolUsuario !== "productor"
+                th Técnico
+
               th Cultivo
               th Estado
               th Observaciones
               th Alerta
+
+              if rolUsuario !== "productor"
+                th Registro
+                th Acciones
+
           tbody
             each obs in observaciones
               tr
-                td= obs._id.toString().substring(0, 8) + '...'
-                td= obs.fecha ? new Date(obs.fecha).toLocaleDateString('es-AR') : '-'
-                td= obs.id_tecnico ? obs.id_tecnico.nombre + ' ' + obs.id_tecnico.apellido : 'N/A'
+                td= obs._id.toString().substring(0, 8) + "..."
+                td= obs.fecha ? new Date(obs.fecha).toLocaleDateString("es-AR") : "-"
+
+                if rolUsuario !== "productor"
+                  td= obs.id_tecnico ? obs.id_tecnico.nombre + " " + obs.id_tecnico.apellido : "N/A"
+
                 td= obs.tipo_cultivo
-                td= obs.estado_cultivo
-                td= obs.observaciones
+                td= obs.estado_cultivo || "-"
+                td= obs.observaciones || "-"
+
                 td
-                  if obs.nivel_alerta === 'Normal'
+                  if obs.nivel_alerta === "Normal"
                     span.alert-badge.alert-normal= obs.nivel_alerta
-                  else if obs.nivel_alerta === 'Atención'
+                  else if obs.nivel_alerta === "Atención"
                     span.alert-badge.alert-atencion= obs.nivel_alerta
-                  else if obs.nivel_alerta === 'Crítico'
+                  else if obs.nivel_alerta === "Crítico"
                     span.alert-badge.alert-critico= obs.nivel_alerta
                   else
-                    span= obs.nivel_alerta || '-'
+                    span= obs.nivel_alerta || "-"
+
+                if rolUsuario !== "productor"
+                  td= obs.activa ? "Activa" : "Inactiva"
+
+                  td
+                    if obs.activa
+                      a.btn.btn-primary(
+                        href="/vista/observaciones/" + obs._id + "/editar"
+                      ) Editar
+
+                      form(
+                        method="POST"
+                        action="/vista/observaciones/" + obs._id + "/eliminar"
+                        style="display:inline-block; margin-left:8px;"
+                        onsubmit="return confirm('¿Eliminar esta observación? Se conservará en el historial.');"
+                      )
+                        button.btn(type="submit") Eliminar 
+                    else
+                      span Registro histórico
     else
       p.empty-state No hay observaciones registradas para este lote.

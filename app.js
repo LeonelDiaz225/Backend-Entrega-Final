@@ -1939,10 +1939,19 @@ app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
     }
 
     // 6. Consultar las observaciones de ese lote
-    let consultaObservaciones = Observacion.find({
-      id_lote: lote._id,
-      activa: true
-    });
+    
+    const filtroObservaciones = {
+      id_lote: lote._id
+    };
+
+    if (usuario.role === "productor") {
+      filtroObservaciones.activa = true;
+    }
+
+    let consultaObservaciones = Observacion.find(
+      filtroObservaciones
+    ).sort({ fecha: -1 });
+
 
     if (usuario.role === "productor") {
       // No exponer datos de los técnicos al productor
@@ -1959,8 +1968,13 @@ app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
     return res.render("lote_detalle", {
       title: `Detalle del Lote ${lote.nombre_numero}`,
       lote,
-      observaciones
+      observaciones,
+      rolUsuario: usuario.role,
+      creada: req.query.creada === "1",
+      editada: req.query.editada === "1",
+      baja: req.query.baja === "1"
     });
+
 
   } catch (error) {
     console.error(
@@ -1973,6 +1987,355 @@ app.get("/vista/lotes/:id", authenticateWeb, async (req, res) => {
     );
   }
 });
+
+
+// ADMINISTRACIÓN WEB DE OBSERVACIONES
+// Validar los datos comunes de una observación
+async function validarFormularioObservacion(body) {
+  const {
+    fecha,
+    tipo_cultivo,
+    estado_cultivo,
+    observaciones,
+    nivel_alerta
+  } = body;
+
+  if (
+    typeof fecha !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(fecha) ||
+    typeof tipo_cultivo !== "string" ||
+    !tipo_cultivo.trim() ||
+    typeof estado_cultivo !== "string" ||
+    typeof observaciones !== "string" ||
+    !["Normal", "Atención", "Crítico"].includes(nivel_alerta)
+  ) {
+    return null;
+  }
+
+  const fechaValidada = new Date(fecha + "T12:00:00.000Z");
+
+  if (
+    Number.isNaN(fechaValidada.getTime()) ||
+    fechaValidada.toISOString().slice(0, 10) !== fecha
+  ) {
+    return null;
+  }
+
+  // Comprobar que el cultivo exista en el catálogo
+  const cultivo = await TipoCultivo.findOne({
+    nombre: {
+      $regex: "^" + escaparRegexCultivo(tipo_cultivo.trim()) + "$",
+      $options: "i"
+    }
+  });
+
+  if (!cultivo) return null;
+
+  return {
+    fecha: fechaValidada,
+    tipo_cultivo: cultivo.nombre,
+    estado_cultivo: estado_cultivo.trim(),
+    observaciones: observaciones.trim(),
+    nivel_alerta
+  };
+}
+
+// Formulario para crear observación
+app.get(
+  "/vista/lotes/:id/observaciones/nueva",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de lote inválido");
+      }
+
+      const lote = await Lote.findById(req.params.id);
+
+      if (!lote) {
+        return res.status(404).send("Lote no encontrado");
+      }
+
+
+      const rolUsuario = req.user.role;
+
+      let tecnicoActual = null;
+      let tecnicos = [];
+
+      if (rolUsuario === "tecnico") {
+        const usuario = await User.findById(req.user.id)
+          .select("id_tecnico")
+          .populate("id_tecnico");
+
+        if (!usuario?.id_tecnico) {
+          return res.status(403).send(
+            "Tu cuenta no tiene un técnico asociado"
+          );
+        }
+
+        tecnicoActual = usuario.id_tecnico;
+      } else {
+        tecnicos = await Tecnico.find()
+          .sort({ apellido: 1, nombre: 1 });
+      }
+
+      const cultivos = await TipoCultivo.find()
+        .sort({ nombre: 1 });
+
+
+      return res.render("observacion_form", {
+        title: "Registrar observación",
+        lote,
+        tecnicos,
+        cultivos,
+        observacion: null,
+        fechaInput: "",
+        modo: "crear",
+        formAction:
+          "/vista/lotes/" + lote._id + "/observaciones",
+        rolUsuario,
+        tecnicoActual,
+      });
+
+    } catch (error) {
+      console.error("Error al abrir formulario:", error.message);
+      return res.status(500).send(
+        "No se pudo cargar el formulario"
+      );
+    }
+  }
+);
+
+// Registrar observación
+app.post(
+  "/vista/lotes/:id/observaciones",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID de lote inválido");
+      }
+
+      const lote = await Lote.findById(req.params.id);
+
+      if (!lote) {
+        return res.status(404).send("Lote no encontrado");
+      }
+
+      
+      let tecnico;
+
+      if (req.user.role === "tecnico") {
+        // Obtener al técnico desde la cuenta autenticada.
+        // Nunca confiar en un ID enviado por el formulario.
+        const usuario = await User.findById(req.user.id)
+          .select("id_tecnico");
+
+        if (!usuario?.id_tecnico) {
+          return res.status(403).send(
+            "Tu cuenta no tiene un técnico asociado"
+          );
+        }
+
+        tecnico = await Tecnico.findById(usuario.id_tecnico);
+
+      } else if (req.user.role === "admin") {
+        // El administrador puede seleccionar un técnico.
+        const { id_tecnico } = req.body;
+
+        if (
+          typeof id_tecnico !== "string" ||
+          !mongoose.isObjectIdOrHexString(id_tecnico)
+        ) {
+          return res.status(400).send("Técnico inválido");
+        }
+
+        tecnico = await Tecnico.findById(id_tecnico);
+      }
+
+      if (!tecnico) {
+        return res.status(400).send(
+          "El técnico responsable no existe"
+        );
+      }
+
+
+      const datos = await validarFormularioObservacion(req.body);
+
+      if (!datos) {
+        return res.status(400).send(
+          "Datos de observación inválidos o cultivo inexistente"
+        );
+      }
+
+      await Observacion.create({
+        ...datos,
+        id_lote: lote._id,
+        id_tecnico: tecnico._id,
+        activa: true
+      });
+
+      return res.redirect(
+        "/vista/lotes/" + lote._id + "?creada=1"
+      );
+
+    } catch (error) {
+      console.error("Error al registrar observación:", error.message);
+      return res.status(500).send(
+        "No se pudo registrar la observación"
+      );
+    }
+  }
+);
+
+// Formulario para editar observación
+app.get(
+  "/vista/observaciones/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID inválido");
+      }
+
+      const observacion = await Observacion.findOne({
+        _id: req.params.id,
+        activa: true
+      });
+
+      if (!observacion) {
+        return res.status(404).send(
+          "Observación activa no encontrada"
+        );
+      }
+
+      const lote = await Lote.findById(observacion.id_lote);
+
+      if (!lote) {
+        return res.status(404).send("Lote no encontrado");
+      }
+
+      const cultivos = await TipoCultivo.find()
+        .sort({ nombre: 1 });
+
+      return res.render("observacion_form", {
+        title: "Editar observación",
+        lote,
+        observacion,
+        cultivos,
+        tecnicos: [],
+        fechaInput: observacion.fecha
+          ? new Date(observacion.fecha).toISOString().slice(0, 10)
+          : "",
+        modo: "editar",
+        formAction:
+          "/vista/observaciones/" + observacion._id + "/editar"
+      });
+
+    } catch (error) {
+      console.error("Error al cargar observación:", error.message);
+      return res.status(500).send(
+        "No se pudo cargar la observación"
+      );
+    }
+  }
+);
+
+// Guardar modificación
+app.post(
+  "/vista/observaciones/:id/editar",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID inválido");
+      }
+
+      const datos = await validarFormularioObservacion(req.body);
+
+      if (!datos) {
+        return res.status(400).send(
+          "Datos inválidos o cultivo inexistente"
+        );
+      }
+
+      // No permitir cambiar el lote ni el técnico original
+      const observacion = await Observacion.findOneAndUpdate(
+        { _id: req.params.id, activa: true },
+        { $set: datos },
+        { new: true, runValidators: true }
+      );
+
+      if (!observacion) {
+        return res.status(404).send(
+          "Observación activa no encontrada"
+        );
+      }
+
+      return res.redirect(
+        "/vista/lotes/" + observacion.id_lote + "?editada=1"
+      );
+
+    } catch (error) {
+      console.error("Error al editar observación:", error.message);
+      return res.status(500).send(
+        "No se pudo modificar la observación"
+      );
+    }
+  }
+);
+
+// Dar de baja sin borrar físicamente
+app.post(
+  "/vista/observaciones/:id/eliminar",
+  authenticateWeb,
+  authorizeWeb("admin", "tecnico"),
+  async (req, res) => {
+    try {
+      if (!validarOrigenAdministracion(req)) {
+        return res.status(403).send("Origen no permitido");
+      }
+
+      if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).send("ID inválido");
+      }
+
+      const observacion = await Observacion.findOneAndUpdate(
+        { _id: req.params.id, activa: true },
+        { $set: { activa: false } },
+        { new: true }
+      );
+
+      if (!observacion) {
+        return res.status(404).send(
+          "Observación activa no encontrada"
+        );
+      }
+
+      return res.redirect(
+        "/vista/lotes/" + observacion.id_lote + "?baja=1"
+      );
+
+    } catch (error) {
+      console.error("Error al dar de baja:", error.message);
+      return res.status(500).send(
+        "No se pudo dar de baja la observación"
+      );
+    }
+  }
+);
 
 
 app.use((req, res) => {

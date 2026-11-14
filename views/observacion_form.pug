@@ -1,0 +1,80 @@
+
+extends layout
+
+block content
+  a.back-link(href="/vista/lotes/" + lote._id) ← Volver al historial
+
+  h1.page-title= title
+  p.subtitle= "Lote: " + lote.nombre_numero
+
+  section.panel
+    form.form-productor(
+      method="POST"
+      action=formAction
+    )
+      
+      if modo === "crear"
+        if rolUsuario === "tecnico"
+          label Técnico responsable
+          p= tecnicoActual.nombre + " " + tecnicoActual.apellido
+          p El sistema registrará automáticamente tu identidad.
+        else
+          label(for="id_tecnico") Técnico responsable
+          select#id_tecnico(name="id_tecnico" required)
+            option(value="") Seleccionar técnico
+            each tecnico in tecnicos
+              option(value=tecnico._id)= tecnico.nombre + " " + tecnico.apellido
+      else
+        p El lote y el técnico responsable se conservarán.
+
+
+      label(for="fecha") Fecha de observación
+      input#fecha(
+        type="date"
+        name="fecha"
+        value=fechaInput
+        required
+      )
+
+      label(for="tipo_cultivo") Tipo de cultivo
+      select#tipo_cultivo(name="tipo_cultivo" required)
+        option(value="") Seleccionar cultivo
+        each cultivo in cultivos
+          option(
+            value=cultivo.nombre
+            selected=observacion && observacion.tipo_cultivo.toLowerCase() === cultivo.nombre.toLowerCase()
+          )= cultivo.nombre
+
+      label(for="estado_cultivo") Estado del cultivo
+      input#estado_cultivo(
+        type="text"
+        name="estado_cultivo"
+        value=observacion ? observacion.estado_cultivo : ""
+        placeholder="Ejemplo: En crecimiento"
+      )
+
+      label(for="observaciones") Observaciones
+      textarea#observaciones(
+        name="observaciones"
+        rows="4"
+        placeholder="Describe el estado del cultivo"
+      )= observacion ? observacion.observaciones : ""
+
+      label(for="nivel_alerta") Nivel de alerta
+      select#nivel_alerta(name="nivel_alerta" required)
+        option(
+          value="Normal"
+          selected=observacion && observacion.nivel_alerta === "Normal"
+        ) Normal
+        option(
+          value="Atención"
+          selected=observacion && observacion.nivel_alerta === "Atención"
+        ) Atención
+        option(
+          value="Crítico"
+          selected=observacion && observacion.nivel_alerta === "Crítico"
+        ) Crítico
+
+      button.btn.btn-primary(type="submit")= modo === "crear" ? "Registrar observación" : "Guardar cambios"
+
+      a.btn(href="/vista/lotes/" + lote._id) Cancelar

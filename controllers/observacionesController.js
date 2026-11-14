@@ -3,6 +3,7 @@ const Observacion = require("../models/Observacion");
 const Lote = require("../models/Lote");
 const Tecnico = require("../models/Tecnico");
 const TipoCultivo = require("../models/TipoCultivo");
+const User = require("../models/User");
 
 /**
  * @openapi
@@ -206,13 +207,30 @@ exports.create = async (req, res) => {
   try {
     const {
       id_lote,
-      id_tecnico,
       fecha,
       tipo_cultivo,
       estado_cultivo,
       observaciones,
-      nivel_alerta,
+      nivel_alerta
     } = req.body;
+
+    let id_tecnico;
+
+    if (req.user.role === "tecnico") {
+      const usuario = await User.findById(req.user.id)
+        .select("id_tecnico");
+
+      if (!usuario?.id_tecnico) {
+        return res.status(403).json({
+          error: "Tu cuenta no tiene un técnico asociado"
+        });
+      }
+
+      id_tecnico = String(usuario.id_tecnico);
+
+    } else if (req.user.role === "admin") {
+      id_tecnico = req.body.id_tecnico;
+    }
 
     // Validar campos requeridos obligatorios
     if (!id_lote || !id_tecnico || !fecha || !tipo_cultivo || !nivel_alerta) {
@@ -282,6 +300,17 @@ exports.create = async (req, res) => {
 // PUT /api/observaciones/:id
 exports.update = async (req, res) => {
   try {
+    if (req.body.id_tecnico !== undefined) {
+      return res.status(400).json({
+        error: "No se puede cambiar el técnico responsable de una observación"
+      });
+    }
+
+    if (req.body.id_lote !== undefined) {
+      return res.status(400).json({
+        error: "No se puede trasladar una observación a otro lote"
+      });
+    }   
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: "ID de observación no válido" });
     }
