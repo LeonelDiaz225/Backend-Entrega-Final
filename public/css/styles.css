@@ -1,4 +1,4 @@
-/* AgroTec — identidad visual */
+/* AgroTec */
 :root {
   --green: #0C252C;
   --green-dark: #071A20;
@@ -101,7 +101,6 @@ textarea:focus-visible {
   color: #E8F0E8;
   line-height: 1;
 }
-
 
 .main-nav {
   display: flex;
@@ -510,13 +509,6 @@ form textarea {
   font-weight: 600;
 }
 
-
-/* ==========================================
-   AGROTEC - AJUSTES FINALES DE DISEÑO
-========================================== */
-
-/* 1. BOTONES EDITAR Y ELIMINAR */
-
 /* Botón Editar */
 .btn-primary {
   background-color: #0C252C;
@@ -545,10 +537,6 @@ form[action$="/eliminar"] button:hover {
   background-color: #954736;
 }
 
-
-/* 2. NAVEGACIÓN CON SUBRAYADO */
-
-
 /* Enlaces del navbar */
 .main-nav a {
   position: relative;
@@ -559,7 +547,6 @@ form[action$="/eliminar"] button:hover {
   text-decoration: none;
 }
 
-/* Línea del mismo ancho que el texto */
 .main-nav a::after {
   content: "";
   position: absolute;
@@ -572,7 +559,6 @@ form[action$="/eliminar"] button:hover {
   transition: transform 0.2s ease;
 }
 
-/* Mostrar al pasar el cursor */
 .main-nav a:hover::after {
   transform: scaleX(1);
 }
@@ -582,15 +568,11 @@ form[action$="/eliminar"] button:hover {
   transform: scaleX(1);
 }
 
-/* Evitar el rectángulo al pasar el cursor */
 .main-nav a:hover {
   background: transparent;
 }
 
-
-
-/* 3. LOGIN CON COLORES INVERTIDOS */
-
+/* LOGIN */
 /* Tarjeta principal */
 .login-card {
   background-color: #0C252C;
@@ -609,14 +591,14 @@ form[action$="/eliminar"] button:hover {
   color: #E8F0E8;
 }
 
-/* Campos de texto claros */
+/* Campos de texto */
 .login-card input {
   background-color: #E8F0E8;
   color: #0C252C;
   border: 1px solid #ADC9B7;
 }
 
-/* Efecto de enfoque */
+/* Efecto */
 .login-card input:focus {
   outline: 2px solid #8FB69C;
   border-color: #8FB69C;
@@ -637,9 +619,6 @@ form[action$="/eliminar"] button:hover {
   background-color: #C9DECE;
   color: #0C252C;
 }
-
-
-/* 4. LOGO JUNTO AL NOMBRE AGROTEC */
 
 /* Contenedor del logo y texto */
 .login-brand {

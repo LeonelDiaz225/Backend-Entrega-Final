@@ -89,7 +89,6 @@ exports.getAll = async (req, res) => {
 
     const filtro = {};
 
-    // 1. Si es productor, buscar su asociación
     if (req.user.role === "productor") {
 
       const usuario = await User.findById(req.user.id)
@@ -105,11 +104,11 @@ exports.getAll = async (req, res) => {
         });
       }
 
-      // Limitar la consulta a sus propios lotes
+      // Limita la consulta a sus propios lotes
       filtro.id_productor = usuario.id_productor;
     }
 
-    // 2. Validar el filtro de alertas
+    // Valida filtro de alertas
     if (alerta) {
       const alertasValidas = [
         "Normal",
@@ -137,7 +136,7 @@ exports.getAll = async (req, res) => {
       filtro._id = { $in: idsLotes };
     }
 
-    // 3. Consultar lotes según los permisos
+    //Consultar lotes según los permisos
     let consulta = Lote.find(filtro);
 
     if (req.user.role !== "productor") {
@@ -311,14 +310,14 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    // 1. Validar el ID del lote
+    // Validar el ID del lote
     if (!mongoose.isObjectIdOrHexString(req.params.id)) {
       return res.status(400).json({
         error: "ID de lote no válido"
       });
     }
 
-    // 2. Buscar el lote
+    // Buscar el lote
     const lote = await Lote.findById(req.params.id);
 
     if (!lote) {
@@ -362,7 +361,6 @@ exports.update = async (req, res) => {
         });
       }
 
-      // Comprobar si realmente cambia el propietario
       const cambiaProductor =
         String(lote.id_productor) !== String(productor._id);
 
@@ -382,7 +380,7 @@ exports.update = async (req, res) => {
       lote.id_productor = productor._id;
     }
 
-    // 5. Guardar los cambios validados
+    // Guardar los cambios validados
     await lote.save();
 
     return res.status(200).json(lote);

@@ -157,7 +157,7 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ username }).select("+password");
 
-    // Verificación
+    // Verificación de usuario y contraseña
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
         error: "Usuario o contraseña incorrectos",

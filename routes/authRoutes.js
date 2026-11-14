@@ -8,10 +8,10 @@ const {
   authorize
 } = require("../middleware/auth");
 
-// Iniciar sesión: acceso público
+// Iniciar sesión
 router.post("/login", authController.login);
 
-// Registrar usuarios: solo administradores
+// Registrar usuarios
 router.post(
   "/register",
   authenticate,

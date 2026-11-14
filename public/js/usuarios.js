@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const rol = roleSelect.value;
 
-    // Ocultar y deshabilitar ambos selectores
     productorField.style.display = "none";
     productorSelect.disabled = true;
     productorSelect.required = false;
@@ -31,7 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
     tecnicoSelect.disabled = true;
     tecnicoSelect.required = false;
 
-    // Mostrar el correspondiente al rol
     if (rol === "productor") {
       productorField.style.display = "";
       productorSelect.disabled = false;

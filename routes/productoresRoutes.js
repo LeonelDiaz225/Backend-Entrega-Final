@@ -8,10 +8,10 @@ const {
   authorize
 } = require("../middleware/auth");
 
-// Todas las rutas requieren autenticación
+
 router.use(authenticate);
 
-// CONSULTAR TODOS LOS PRODUCTORES
+// CONSULTAR PRODUCTORES
 router.get("/", authorize("admin", "tecnico"), controller.getAll);
 
 // CONSULTAR UN PRODUCTOR POR ID

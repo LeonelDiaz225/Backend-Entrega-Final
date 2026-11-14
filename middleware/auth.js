@@ -13,7 +13,7 @@ const authenticate = async (req, res, next) => {
 
   const token = authorization.slice(7).trim();
 
-  // 1. Verificar firma y vencimiento del JWT
+  // Verifica token
   let decoded;
 
   try {
@@ -24,7 +24,7 @@ const authenticate = async (req, res, next) => {
     });
   }
 
-  // 2. Consultar el usuario actual
+  // Consulta el usuario actual
   try {
     const usuario = await User.findById(decoded.id)
       .select("username role id_productor");
@@ -35,7 +35,6 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // 3. Usar los datos actuales de MongoDB
     req.user = {
       id: usuario._id.toString(),
       username: usuario.username,

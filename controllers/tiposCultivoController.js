@@ -18,7 +18,6 @@ async function cultivoTieneObservaciones(nombre) {
   return Boolean(observacion);
 }
 
-
 /**
  * @openapi
  * components:
