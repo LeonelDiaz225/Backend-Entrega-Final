@@ -7,6 +7,7 @@ const helmet = require("helmet");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
+const swaggerUiDist = require("swagger-ui-dist");
 const swaggerJSDoc = require("swagger-jsdoc");
 const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
@@ -54,6 +55,7 @@ app.get("/api-docs.json", (req, res) => {
 });
 app.use(
   "/api-docs",
+  express.static(swaggerUiDist.getAbsoluteFSPath()),
   swaggerUi.serveFiles(swaggerSpec),
   swaggerUi.setup(swaggerSpec)
 );
