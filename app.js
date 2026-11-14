@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 
 require("./config/env");
 
@@ -53,20 +54,35 @@ const swaggerSpec = swaggerJSDoc({
 app.get("/api-docs.json", (req, res) => {
   res.json(swaggerSpec);
 });
-const swaggerAsset = (filename) => (req, res) => {
-  res.sendFile(path.join(swaggerUiDist.getAbsoluteFSPath(), filename));
+const swaggerAsset = (filename, contentType) => {
+  const asset = fs.readFileSync(
+    require.resolve(`swagger-ui-dist/${filename}`),
+    contentType === "image/png" ? undefined : "utf8"
+  );
+  return (req, res) => {
+    res.type(contentType).send(asset);
+  };
 };
-app.get("/api-docs/swagger-ui.css", swaggerAsset("swagger-ui.css"));
+app.get(
+  "/api-docs/swagger-ui.css",
+  swaggerAsset("swagger-ui.css", "text/css")
+);
 app.get(
   "/api-docs/swagger-ui-bundle.js",
-  swaggerAsset("swagger-ui-bundle.js")
+  swaggerAsset("swagger-ui-bundle.js", "text/javascript")
 );
 app.get(
   "/api-docs/swagger-ui-standalone-preset.js",
-  swaggerAsset("swagger-ui-standalone-preset.js")
+  swaggerAsset("swagger-ui-standalone-preset.js", "text/javascript")
 );
-app.get("/api-docs/favicon-32x32.png", swaggerAsset("favicon-32x32.png"));
-app.get("/api-docs/favicon-16x16.png", swaggerAsset("favicon-16x16.png"));
+app.get(
+  "/api-docs/favicon-32x32.png",
+  swaggerAsset("favicon-32x32.png", "image/png")
+);
+app.get(
+  "/api-docs/favicon-16x16.png",
+  swaggerAsset("favicon-16x16.png", "image/png")
+);
 app.use(
   "/api-docs",
   express.static(swaggerUiDist.getAbsoluteFSPath()),
