@@ -52,7 +52,11 @@ const swaggerSpec = swaggerJSDoc({
 app.get("/api-docs.json", (req, res) => {
   res.json(swaggerSpec);
 });
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(
+  "/api-docs",
+  swaggerUi.serveFiles(swaggerSpec),
+  swaggerUi.setup(swaggerSpec)
+);
 
 // Configuración del motor de plantillas Pug
 app.set("view engine", "pug");
