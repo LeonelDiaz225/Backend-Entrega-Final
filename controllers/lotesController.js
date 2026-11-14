@@ -328,7 +328,7 @@ exports.update = async (req, res) => {
 
     const { nombre_numero, id_productor } = req.body;
 
-    // 3. Validar nombre, si fue enviado
+    // Validar nombre
     if (nombre_numero !== undefined) {
       if (
         typeof nombre_numero !== "string" ||
@@ -342,7 +342,6 @@ exports.update = async (req, res) => {
       lote.nombre_numero = nombre_numero.trim();
     }
 
-    // 4. Validar cambio de productor
     if (id_productor !== undefined) {
       if (
         typeof id_productor !== "string" ||

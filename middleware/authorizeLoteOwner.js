@@ -46,7 +46,7 @@ const authorizeLoteOwner = async (req, res, next) => {
       });
     }
 
-    // El productor es propietario: permitir acceso
+    // Si el productor es propietario permitir acceso
     return next();
 
   } catch (error) {
