@@ -1,391 +1,473 @@
-/* AgroTec · Estilos compartidos */
+/* AgroTec — identidad visual */
 :root {
-    --green: #2e7d32;
-    --green-dark: #1b5e20;
-    --green-pale: #e8f5e9;
-    --bg: #f0f5f0;
-    --ink: #243329;
-    --muted: #627267;
-    --border: #dfe8df;
-    --white: #fff;
-    --shadow: 0 4px 16px rgba(0, 0, 0, .055);
+  --green: #0C252C;
+  --green-dark: #071A20;
+  --green-pale: #D4E5D7;
+  --bg: #E8F0E8;
+  --ink: #0C252C;
+  --muted: #49615C;
+  --border: #CBDCD1;
+  --white: #F2F5ED;
+  --surface: #F2F5ED;
+  --surface-soft: #E0EADF;
+  --accent: #8FB69C;
+  --shadow: 0 7px 24px rgba(12, 37, 44, .09);
 }
 
-* {
-    box-sizing: border-box;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-    margin: 0;
-    min-height: 100vh;
-    font-family: Arial, Helvetica, sans-serif;
-    background: var(--bg);
-    color: var(--ink);
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
 }
 
 a {
-    color: var(--green);
+  color: var(--green);
+}
+
+a:hover {
+  color: var(--green-dark);
 }
 
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
-    outline: 3px solid #99cb9c;
-    outline-offset: 3px;
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #74A48C;
+  outline-offset: 3px;
 }
 
 .site-header {
-    background: var(--green);
-    color: #fff;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, .08);
+  background: var(--green);
+  color: var(--white);
+  box-shadow: 0 3px 12px rgba(12, 37, 44, .18);
 }
 
 .header-inner {
-    max-width: 1140px;
-    margin: auto;
-    padding: 16px 22px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
+  max-width: 1200px;
+  margin: auto;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 
 .brand {
-    color: #fff;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--white);
+  text-decoration: none;
 }
 
+.brand:hover {
+  color: var(--white);
+}
+
+.brand-logo {
+  width: 47px;
+  height: 47px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand-name{
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.7px;
+}
+
+.site-header .brand span {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: #E8F0E8;
+  line-height: 1;
+}
+
+
 .main-nav {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
 }
 
 .main-nav a {
-    color: #fff;
-    text-decoration: none;
-    padding: 9px 11px;
-    border-radius: 7px;
-    font-size: 14px;
+  color: var(--white);
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.main-nav a:hover {
-    background: rgba(255, 255, 255, .16);
+.main-nav a:hover,
+.main-nav a:focus-visible {
+  background: rgba(242, 245, 237, .15);
+  color: var(--white);
 }
 
 .logout-form {
-    margin: 0;
+  margin: 0;
 }
 
-.btn {
-    display: inline-block;
-    border: 0;
-    padding: 11px 17px;
-    border-radius: 7px;
-    text-decoration: none;
-    cursor: pointer;
-    font: inherit;
-    font-weight: 700;
+.btn,
+button[type="submit"] {
+  display: inline-block;
+  background: var(--green);
+  color: var(--white);
+  border: 1px solid var(--green);
+  padding: 10px 16px;
+  border-radius: 9px;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.4;
+  transition: background .18s, transform .18s;
 }
 
-.btn-light {
-    background: #fff;
-    color: var(--green);
-}
-
-.btn-light:hover {
-    background: var(--green-pale);
+.btn:hover,
+button[type="submit"]:hover {
+  background: var(--green-dark);
+  color: var(--white);
+  transform: translateY(-1px);
 }
 
 .btn-primary {
-    background: var(--green);
-    color: #fff;
+  background: var(--green);
+  color: var(--white);
 }
 
-.btn-primary:hover {
-    background: var(--green-dark);
+.btn-light,
+.logout-form .btn-light {
+  background: var(--green-pale);
+  border-color: var(--green-pale);
+  color: var(--green);
+}
+
+.btn-light:hover,
+.logout-form .btn-light:hover {
+  background: var(--white);
+  color: var(--green);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+  transform: none;
 }
 
 .page {
-    max-width: 1100px;
-    padding: 36px 20px 52px;
-    margin: 0 auto;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 36px 20px 55px;
 }
 
 .page-title {
-    margin: 0 0 9px;
-    color: var(--green);
-    font-size: 29px;
+  margin: 0 0 9px;
+  color: var(--green);
+  font-size: clamp(25px, 3vw, 32px);
+  font-weight: 800;
+  letter-spacing: -.65px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--green);
 }
 
 .subtitle {
-    margin: 0 0 20px;
-    color: var(--muted);
-    line-height: 1.55;
+  margin: 0 0 20px;
+  color: var(--muted);
+  line-height: 1.6;
 }
 
-.panel {
-    background: #fff;
-    padding: 28px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    margin-bottom: 24px;
+.panel,
+.login-card {
+  background: var(--surface);
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
 }
 
 .panel h2 {
-    color: var(--green);
-    margin-top: 0;
+  margin-top: 0;
 }
 
 .status {
-    display: inline-block;
-    color: var(--green);
-    background: var(--green-pale);
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 8px 14px;
+  display: inline-block;
+  color: var(--green);
+  background: var(--green-pale);
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 14px;
+}
+
+.user-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.user-summary strong {
+  color: var(--green);
 }
 
 .cards {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .card {
-    background: #fff;
-    padding: 24px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    text-decoration: none;
-    color: var(--ink);
-    box-shadow: var(--shadow);
-    transition: transform .2s, box-shadow .2s;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: var(--surface);
+  padding: 25px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  text-decoration: none;
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  transition: transform .2s, box-shadow .2s, border-color .2s;
 }
 
 .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 21px rgba(0, 0, 0, .11);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(12, 37, 44, .14);
+  border-color: var(--accent);
 }
 
-.card .card-icon {
-    font-size: 30px;
-    margin-bottom: 12px;
+.card-icon {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  margin-bottom: 15px;
 }
 
 .card h3 {
-    color: var(--green);
-    margin: 0 0 11px;
+  color: var(--green);
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .card p {
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.55;
-    margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .section-title {
-    color: var(--green);
-    margin: 27px 0 16px;
+  color: var(--green);
+  margin: 28px 0 17px;
 }
 
 .back-link {
-    display: inline-block;
-    margin-bottom: 18px;
-    text-decoration: none;
-    font-weight: 700;
+  display: inline-block;
+  margin-bottom: 18px;
+  text-decoration: none;
+  font-weight: 700;
 }
 
 .table-wrap {
-    overflow-x: auto;
+  overflow-x: auto;
+  border-radius: 10px;
 }
 
 .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
 }
 
 .data-table th,
 .data-table td {
-    padding: 13px 15px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
 }
 
 .data-table th {
-    background: #f5faf5;
-    color: #2c6132;
-    white-space: nowrap;
+  background: var(--green-pale);
+  color: var(--green);
+  white-space: nowrap;
+  font-size: 13px;
 }
 
 .data-table tbody tr:hover {
-    background: #fafdfa;
+  background: var(--surface-soft);
+}
+
+.data-table td {
+  font-size: 13px;
+}
+
+.data-table form {
+  display: inline-block;
 }
 
 .empty-state {
-    padding: 16px;
-    border-radius: 8px;
-    color: var(--muted);
-    background: #f5faf5;
+  padding: 16px;
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--surface-soft);
 }
 
 .tags {
-    display: flex;
-    gap: 9px;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
 }
 
 .tag {
-    font: 13px/1.4 monospace;
-    padding: 8px 11px;
-    border-radius: 6px;
-    background: var(--bg);
-    color: #316a38;
+  font: 13px/1.4 'Plus Jakarta Sans', sans-serif;
+  padding: 8px 11px;
+  border-radius: 7px;
+  background: var(--green-pale);
+  color: var(--green);
 }
 
 .alert-badge {
-    font-weight: 700;
-    padding: 5px 9px;
-    border-radius: 20px;
-    display: inline-block;
-    font-size: 12px;
-    white-space: nowrap;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 20px;
+  display: inline-block;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .alert-normal {
-    color: #176b38;
-    background: #dff4e6;
+  color: #145E3D;
+  background: #D0EAD7;
 }
 
 .alert-atencion {
-    color: #935e05;
-    background: #fff1ce;
+  color: #82540B;
+  background: #F6E5BA;
 }
 
 .alert-critico {
-    color: #a12222;
-    background: #ffe5e5;
+  color: #923B35;
+  background: #F5D8D3;
 }
 
 .site-footer {
-    text-align: center;
-    padding: 20px;
-    font-size: 13px;
-    color: #768579;
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
-/* Login */
 .login-page {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 22px;
 }
 
 .login-card {
-    width: 100%;
-    max-width: 390px;
-    background: #fff;
-    padding: 36px;
-    border-radius: 12px;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, .10);
+  width: 100%;
+  max-width: 420px;
+  padding: 36px;
 }
 
 .login-card h1 {
-    text-align: center;
-    color: var(--green);
-    margin: 0 0 10px;
-    font-size: 30px;
+  text-align: center;
+  color: var(--green);
+  margin: 0 0 10px;
+  font-size: 30px;
 }
 
 .login-card .subtitle {
-    text-align: center;
-    margin-bottom: 26px;
-}
-
-.form-field {
-    margin: 0 0 17px;
-}
-
-.form-field label {
-    display: block;
-    margin-bottom: 7px;
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.form-field input {
-    width: 100%;
-    border: 1px solid #cbd6cd;
-    border-radius: 6px;
-    padding: 11px 12px;
-    font: inherit;
+  text-align: center;
+  margin-bottom: 25px;
 }
 
 .login-card .btn {
-    width: 100%;
-    margin-top: 5px;
+  width: 100%;
+  margin-top: 5px;
 }
-
-.form-error {
-    padding: 11px 12px;
-    color: #9c2020;
-    background: #ffeded;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-
-/* Formularios de administración */
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-bottom: 20px;
 }
 
+.form-field {
+  margin: 0 0 15px;
+}
+
+.form-field label,
+.form-productor label,
+form label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+}
+
 .form-field input,
-.form-field select {
+.form-field select,
+.form-productor input,
+.form-productor select,
+.form-productor textarea,
+form input:not([type="hidden"]),
+form select,
+form textarea {
   width: 100%;
   padding: 11px 12px;
-  border: 1px solid #cbd6cd;
-  border-radius: 6px;
+  border: 1px solid #B7CBBE;
+  border-radius: 8px;
   font: inherit;
-  background: white;
+  font-size: 14px;
+  background: #EAF1E8;
+  color: var(--ink);
 }
 
 .form-field input:focus,
-.form-field select:focus {
-  border-color: #2e7d32;
-  outline: 2px solid #c8e6c9;
+.form-field select:focus,
+.form-productor input:focus,
+.form-productor select:focus,
+.form-productor textarea:focus {
+  border-color: #74A48C;
+  outline: 2px solid #B4D3BD;
 }
 
-.form-success {
-  padding: 12px;
-  background: #e8f5e9;
-  color: #2e7d32;
-  border-radius: 6px;
-  margin-bottom: 20px;
-}
-
-@media (max-width: 600px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-/* Formulario de registro de productores */
 .form-productor {
   display: flex;
   flex-direction: column;
@@ -395,58 +477,257 @@ input:focus-visible {
 }
 
 .form-productor label {
-  font-weight: 600;
-  margin-top: 8px;
-}
-
-.form-productor input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-sizing: border-box;
+  margin-top: 7px;
 }
 
 .form-productor h3 {
-  margin-top: 20px;
-  margin-bottom: 5px;
+  margin: 20px 0 4px;
 }
 
 .form-productor button {
   align-self: flex-start;
-  padding: 10px 18px;
   margin-top: 15px;
+  width: auto;
+}
+
+.form-error {
+  padding: 12px;
+  color: #8C3030;
+  background: #F4DAD6;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.form-success,
+.success-message {
+  display: block;
+  padding: 12px 14px;
+  background: var(--green-pale);
+  color: var(--green);
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+
+/* ==========================================
+   AGROTEC - AJUSTES FINALES DE DISEÑO
+========================================== */
+
+/* 1. BOTONES EDITAR Y ELIMINAR */
+
+/* Botón Editar */
+.btn-primary {
+  background-color: #0C252C;
+  color: #F2F5ED;
+}
+
+.btn-primary:hover {
+  background-color: #183C44;
+  color: #F2F5ED;
+}
+
+/* Botón Eliminar y Dar de baja */
+form[action$="/eliminar"] button {
+  background-color: #B45F4C;
+  color: #F2F5ED;
+  border: none;
+  border-radius: 7px;
+  padding: 11px 17px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+form[action$="/eliminar"] button:hover {
+  background-color: #954736;
+}
+
+
+/* 2. NAVEGACIÓN CON SUBRAYADO */
+
+
+/* Enlaces del navbar */
+.main-nav a {
+  position: relative;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 9px 11px;
+  text-decoration: none;
+}
+
+/* Línea del mismo ancho que el texto */
+.main-nav a::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 11px;
+  right: 11px;
+  height: 2px;
+  background-color: #B8D8C4;
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+/* Mostrar al pasar el cursor */
+.main-nav a:hover::after {
+  transform: scaleX(1);
+}
+
+/* Mantener marcada la sección activa */
+.main-nav a[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+/* Evitar el rectángulo al pasar el cursor */
+.main-nav a:hover {
+  background: transparent;
+}
+
+
+
+/* 3. LOGIN CON COLORES INVERTIDOS */
+
+/* Tarjeta principal */
+.login-card {
+  background-color: #0C252C;
+  color: #E8F0E8;
+  border: 1px solid #24454D;
+  box-shadow: 0 12px 32px rgba(12, 37, 44, 0.18);
+}
+
+/* Subtítulo del login */
+.login-card .subtitle {
+  color: #CEDFD7;
+}
+
+/* Etiquetas de usuario y contraseña */
+.login-card label {
+  color: #E8F0E8;
+}
+
+/* Campos de texto claros */
+.login-card input {
+  background-color: #E8F0E8;
+  color: #0C252C;
+  border: 1px solid #ADC9B7;
+}
+
+/* Efecto de enfoque */
+.login-card input:focus {
+  outline: 2px solid #8FB69C;
+  border-color: #8FB69C;
+}
+
+/* Botón Iniciar sesión */
+.login-card .btn,
+.login-card button[type="submit"] {
+  background-color: #E8F0E8;
+  color: #0C252C;
+  border: none;
+  font-weight: 700;
+  transition: background-color 0.2s ease;
+}
+
+.login-card .btn:hover,
+.login-card button[type="submit"]:hover {
+  background-color: #C9DECE;
+  color: #0C252C;
+}
+
+
+/* 4. LOGO JUNTO AL NOMBRE AGROTEC */
+
+/* Contenedor del logo y texto */
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+/* Imagen del logo */
+.login-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Nombre AgroTec */
+.login-card .login-brand h1 {
+  margin: 0;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  color: #E8F0E8;
+  line-height: 1.2;
+}
+
+/* Ajustes para celulares */
+@media (max-width: 480px) {
+  .login-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .login-card .login-brand h1 {
+    font-size: 28px;
+  }
+
+  .login-brand {
+    gap: 10px;
+  }
 }
 
 
 @media(max-width:850px) {
-    .cards {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .header-inner {
+    justify-content: center;
+  }
 }
 
 @media(max-width:600px) {
-    .header-inner {
-        align-items: flex-start;
-    }
 
-    .cards {
-        grid-template-columns: 1fr;
-    }
+  .cards,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 
-    .page {
-        padding: 24px 14px;
-    }
+  .page {
+    padding: 24px 14px;
+  }
 
-    .panel {
-        padding: 19px;
-    }
+  .panel {
+    padding: 19px;
+  }
 
-    .page-title {
-        font-size: 24px;
-    }
+  .login-card {
+    padding: 24px;
+  }
 
-    .login-card {
-        padding: 25px;
-    }
+  .header-inner {
+    align-items: center;
+  }
+
+  .brand-name {
+    font-size: 21px;
+  }
+
+  .main-nav {
+    justify-content: center;
+  }
+
+  .card-icon {
+    width: 66px;
+    height: 66px;
+  }
 }

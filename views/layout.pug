@@ -3,17 +3,27 @@ html(lang="es")
   head
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title= title || 'AgroTec'
+    title= title || "AgroTec"
+    link(rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap")
     link(rel="stylesheet", href="/css/styles.css")
 
   body
     header.site-header
       .header-inner
-        a.brand(href="/") 🌱 AgroTec
 
+        //- Logo y nombre AgroTec
+        a.brand(href="/")
+          img.brand-logo(
+            src="/icon/logo-blanco.png"
+            alt="Logo AgroTec"
+          )
+          span AgroTec
+
+        //- Menú principal
         nav.main-nav(aria-label="Menú principal")
           a(href="/") Inicio
           a(href="/vista/lotes") Lotes
+
           if usuarioActual && ["admin", "tecnico"].includes(usuarioActual.role)
             a(href="/vista/productores") Productores
             a(href="/vista/tecnicos") Técnicos
@@ -22,14 +32,27 @@ html(lang="es")
           if usuarioActual && usuarioActual.role === "admin"
             a(href="/vista/usuarios") Usuarios
 
+        //- Cerrar sesión
         form.logout-form(action="/logout", method="POST")
           button.btn.btn-light(type="submit") Cerrar sesión
 
+    //- Contenido de cada vista
     main.page
       block content
 
+    //- Pie de página
     footer.site-footer
-      p AgroTec · Sistema de Monitoreo Agrícola
+      p AgroTec · Sistema de Monitoreo Agrícola · implementado por YodaLabs · 2026
 
-    // JavaScript específico de cada vista
+   
+
+    //- Identificar la sección activa del navbar
+    script(src="/js/nav-activo.js" defer)
+
+    //- JavaScript específico de cada vista
+    block scripts
+
+
+
+    //- JavaScript específico de cada vista
     block scripts

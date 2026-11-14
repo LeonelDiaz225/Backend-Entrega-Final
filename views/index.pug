@@ -1,45 +1,46 @@
 extends layout
 
 block content
-  section.panel
-    h1.page-title Panel de administración
+  section.panel.welcome-panel
+    h1.page-title Panel de AgroTec
     p.subtitle= message || 'Bienvenido al Sistema de Monitoreo Agrícola AgroTec.'
     p Desde aquí puedes acceder a los módulos disponibles del sistema.
     span.status ● Sistema operativo
 
     if usuarioActual
-      p
-        strong Usuario:
-        |  #{usuarioActual.username}
-
-      p
-        strong Rol:
-        |  #{usuarioActual.role}
-
+      .user-summary
+        span
+          strong Usuario:
+          |  #{usuarioActual.username}
+        span
+          strong Rol:
+          |  #{usuarioActual.role}
 
   h2.section-title Módulos del sistema
   section.cards
     a.card(href="/vista/lotes")
-      .card-icon 🌾
+      img.card-icon(src="/icon/lotes.png", alt="", aria-hidden="true")
       h3 Lotes
-      p Consulta los lotes agrícolas y su historial de observaciones.
-    
+      p Consulta los lotes agrícolas y sus observaciones.
+
     if usuarioActual && ["admin", "tecnico"].includes(usuarioActual.role)
       a.card(href="/vista/productores")
-        .card-icon 👨‍🌾
+        img.card-icon(src="/icon/productor.png", alt="", aria-hidden="true")
         h3 Productores
         p Consulta productores y establecimientos registrados.
+
       a.card(href="/vista/tecnicos")
-        .card-icon 🛠️
+        img.card-icon(src="/icon/tecnico.png", alt="", aria-hidden="true")
         h3 Técnicos
-        p Consulta los técnicos responsables del seguimiento.
+        p Consulta los responsables del seguimiento agrícola.
+
       a.card(href="/vista/tipos-cultivo")
-        .card-icon 🌱
+        img.card-icon(src="/icon/planta.png", alt="", aria-hidden="true")
         h3 Tipos de cultivo
-        p Revisa el catálogo de cultivos registrados.
-    
+        p Revisa y administra el catálogo de cultivos.
+
     if usuarioActual && usuarioActual.role === "admin"
       a.card(href="/vista/usuarios")
+        img.card-icon(src="/icon/usuario.png", alt="", aria-hidden="true")
         h3 Usuarios
-        p Consulta las cuentas registradas en AgroTec.
-
+        p Consulta y administra las cuentas de AgroTec.
