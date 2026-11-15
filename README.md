@@ -68,7 +68,7 @@ AgroTec reemplaza el registro manual de controles agrícolas y permite:
 | Swagger JSDoc | Generación de documentación OpenAPI |
 | migrate-mongo | Migraciones |
 | Jest + Supertest | Pruebas automatizadas |
-| Vercel | Despliegue serverless de la aplicación |
+| Render | Despliegue de la aplicación |
 
 ## Arquitectura
 
@@ -101,10 +101,6 @@ Agrotec_Entrega_Final/
 ├── vercel.json
 ├── README.md
 ├── assets/
-│   ├── DSWB_2A_YodaLabs-Informe_2C26.docx
-│   ├── DSWB_2A_YodaLabs-SegundaEntrega.docx
-│   ├── Img1.JPG
-│   ├── Img2.JPG
 │   └── YodaLabs.png
 ├── config/
 │   ├── db.js
@@ -129,6 +125,7 @@ Agrotec_Entrega_Final/
 ├── middleware/
 │   ├── auth.js
 │   ├── authWeb.js
+│   ├── authorizeLoteOwner.js
 │   ├── authorizeWeb.js
 │   ├── errorHandler.js
 │   └── requestLogger.js
@@ -147,17 +144,26 @@ Agrotec_Entrega_Final/
 │   ├── tecnicosRoutes.js
 │   └── tiposCultivoRoutes.js
 ├── scripts/
+│   ├── createAdmin.js
 │   └── seed.js
 ├── test/
 │   ├── app.test.js
 │   └── auth.test.js
 └── views/
     ├── index.pug
+    ├── layout.pug
+    ├── login.pug
     ├── lote_detalle.pug
+    ├── lote_editar.pug
     ├── lotes.pug
+    ├── observacion_form.pug
+    ├── productor_editar.pug
     ├── productores.pug
+    ├── tecnico_editar.pug
     ├── tecnicos.pug
+    ├── tipo_cultivo_editar.pug
     ├── tipos_cultivo.pug
+    ├── usuario_editar.pug
     └── usuarios.pug
 ```
 
@@ -207,9 +213,8 @@ JWT_EXPIRES_IN=2h
 MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
 ```
 
-En Vercel no se sube `prod.env`. Las mismas variables se configuran desde
-**Project Settings > Environment Variables**, seleccionando al menos el entorno
-**Production**:
+En Render no se sube `prod.env`. Las mismas variables se configuran desde las
+variables de entorno del servicio:
 
 ```text
 NODE_ENV=production
@@ -220,7 +225,7 @@ JWT_EXPIRES_IN=2h
 MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
 ```
 
-`PORT` no se configura en Vercel porque la plataforma administra el puerto.
+`PORT` no necesita configurarse manualmente porque Render administra el puerto.
 
 Nunca publicar en GitHub:
 
@@ -289,12 +294,12 @@ ver las colecciones y documentos creados por la aplicación.
 
 1. Crear un cluster.
 2. Crear un usuario de base de datos.
-3. En **Network Access**, agregar la IP permitida. Para Vercel, cuyas IP
+3. En **Network Access**, agregar la IP permitida. Para Render, cuyas IP
    pueden variar, se puede usar temporalmente `0.0.0.0/0` con un usuario y
    contraseña seguros.
 4. Copiar la URI desde **Connect > Drivers**.
 5. Colocar la URI completa en `prod.env` para ejecución local o en `MONGO_URI`
-   dentro de Vercel.
+   dentro de Render.
 6. Ejecutar migración y seed de producción.
 
 Compass también puede conectarse directamente usando la URI de Atlas.
@@ -349,14 +354,21 @@ Campos principales:
 - `nombre`, `apellido` y `email`.
 - `role`: `admin`, `tecnico` o `productor`.
 
-El registro público crea usuarios con rol `tecnico` por defecto. El rol no se
-acepta desde el body de registro.
+El registro mediante la API requiere un usuario con rol `admin`. El rol no se
+acepta desde el body y el valor predeterminado del modelo es `tecnico`.
+Los usuarios `tecnico` deben estar asociados a un registro de `Tecnico` mediante
+`id_tecnico`; los usuarios `productor`, a un `Productor` mediante
+`id_productor`.
 
 ## Autenticación y autorización
 
 ### Registro
 
-`POST /api/auth/register` no requiere token.
+`POST /api/auth/register` requiere un token de un usuario con rol `admin`.
+El controlador no recibe `id_tecnico` ni `id_productor`, por lo que la creación
+de usuarios asociados se realiza desde la vista administrativa
+`/vista/usuarios`. Para crear el primer administrador se utiliza
+`scripts/createAdmin.js`.
 
 ### Login
 
@@ -373,17 +385,20 @@ Authorization: Bearer <TOKEN>
 
 | Recurso | Lectura | Escritura | Eliminación |
 | --- | --- | --- | --- |
-| Productores | Cualquier usuario autenticado | `admin` | `admin` |
-| Técnicos | Cualquier usuario autenticado | `admin` | `admin` |
-| Lotes | Cualquier usuario autenticado | `admin`, `tecnico` | `admin` |
-| Observaciones | Cualquier usuario autenticado | `admin`, `tecnico` | `admin`, `tecnico` |
-| Tipos de cultivo | Cualquier usuario autenticado | `admin` | `admin` |
+| Productores | `admin`, `tecnico` | `admin` | `admin` |
+| Técnicos | `admin`, `tecnico` | `admin` | `admin` |
+| Lotes | Usuario autenticado* | `admin`, `tecnico` | `admin`, `tecnico` |
+| Observaciones | `admin`, `tecnico` | `admin`, `tecnico` | `admin`, `tecnico` |
+| Tipos de cultivo | `admin`, `tecnico` | `admin`, `tecnico` | `admin` |
+
+`*` Los usuarios con rol `productor` solo pueden consultar sus propios lotes
+y el historial de observaciones asociado.
 
 ## Endpoints
 
 Base local: `http://localhost:3000`.
 
-Base pública: `https://backend-entrega-final-eight.vercel.app`.
+Base pública: `https://backend-entrega-final-id4y.onrender.com`.
 
 ### Sistema y documentación
 
@@ -395,10 +410,10 @@ Base pública: `https://backend-entrega-final-eight.vercel.app`.
 
 ### Autenticación
 
-| Método | Ruta | Body |
-| --- | --- | --- |
-| POST | `/api/auth/register` | `username`, `password`, `nombre`, `apellido`, `email` |
-| POST | `/api/auth/login` | `username`, `password` |
+| Método | Ruta | Autenticación | Body |
+| --- | --- | --- | --- |
+| POST | `/api/auth/register` | `Bearer` de `admin` | `username`, `password`, `nombre`, `apellido`, `email` |
+| POST | `/api/auth/login` | No | `username`, `password` |
 
 ### Productores
 
@@ -477,11 +492,13 @@ Body de ejemplo:
 
 ## Vistas Pug
 
-Las vistas son consultas HTML renderizadas en el servidor:
+Las vistas son páginas HTML renderizadas en el servidor y protegidas mediante
+autenticación web con cookie:
 
 | Ruta | Vista |
 | --- | --- |
 | `/` | `index.pug` |
+| `/login` | `login.pug` |
 | `/vista/productores` | `productores.pug` |
 | `/vista/tecnicos` | `tecnicos.pug` |
 | `/vista/tipos-cultivo` | `tipos_cultivo.pug` |
@@ -489,8 +506,10 @@ Las vistas son consultas HTML renderizadas en el servidor:
 | `/vista/lotes/:id` | `lote_detalle.pug` |
 | `/vista/usuarios` | `usuarios.pug` |
 
-Estas vistas son principalmente de consulta. Las operaciones de escritura se
-realizan desde la API REST.
+Además de consultar información, las vistas permiten operaciones CRUD mediante
+formularios protegidos por rol. Las rutas de creación, edición y eliminación
+están implementadas en `app.js`; la API REST sigue disponible para
+integraciones externas.
 
 ## Swagger / OpenAPI
 
@@ -580,8 +599,18 @@ Las pruebas actuales cubren:
 - Validación de JWT.
 - Autorización por roles.
 
-Las pruebas no requieren una conexión real a MongoDB porque testean la
-configuración HTTP y los middlewares aislados.
+`app.test.js` prueba la configuración HTTP sin conectar a MongoDB. Las pruebas
+de `auth.test.js` ejercitan el modelo `User` y el middleware de autenticación;
+la autenticación consulta el usuario en MongoDB, por lo que esas pruebas deben
+ejecutarse con una base disponible o con el acceso a datos simulado.
+
+En el estado actual del proyecto, `npm test` puede fallar en `auth.test.js` si
+no se simula la consulta a MongoDB y la respuesta HTTP del middleware. La
+prueba de `seed:check` sí funciona sin conexión:
+
+```powershell
+npm run seed:check
+```
 
 ## Pruebas manuales con Postman
 
@@ -591,10 +620,59 @@ configuración HTTP y los middlewares aislados.
 npm start
 ```
 
-### 2. Registrar un usuario
+### 2. Crear el primer administrador
+
+Definir `ADMIN_USERNAME`, `ADMIN_PASSWORD` (mínimo 12 caracteres) y
+`ADMIN_EMAIL` en `.env`, y ejecutar:
+
+```powershell
+node scripts/createAdmin.js
+```
+
+El script no crea otro administrador si ya existe uno.
+
+### 3. Iniciar sesión como administrador
+
+```http
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "username": "admin",
+  "password": "Secret123456"
+}
+```
+
+Copiar el campo `token` de la respuesta. En Postman, seleccionar
+**Authorization > Bearer Token** y pegarlo.
+
+### 4. Crear un usuario desde la administración web
+
+Para crear un usuario `tecnico` o `productor` asociado a su entidad, ingresar
+con el administrador a:
+
+```text
+http://localhost:3000/vista/usuarios
+```
+
+La vista permite seleccionar el rol y asociar el técnico o productor
+correspondiente.
+
+La ruta API de registro también está protegida por rol `admin`, pero actualmente
+no recibe los campos de asociación requeridos por los usuarios operativos.
+
+### 5. Referencia de la ruta API de registro
+
+La ruta existe y requiere un token de administrador, pero el controlador no
+permite indicar la asociación con un técnico o productor. Con el esquema actual,
+puede fallar la validación del usuario `tecnico` predeterminado; para un alta
+operativa se debe utilizar `/vista/usuarios`.
 
 ```http
 POST http://localhost:3000/api/auth/register
+Authorization: Bearer <TOKEN_ADMIN>
 Content-Type: application/json
 ```
 
@@ -608,7 +686,7 @@ Content-Type: application/json
 }
 ```
 
-### 3. Iniciar sesión
+### 6. Iniciar sesión con el usuario creado desde la vista
 
 ```http
 POST http://localhost:3000/api/auth/login
@@ -625,14 +703,14 @@ Content-Type: application/json
 Copiar el campo `token` de la respuesta. En Postman, seleccionar
 **Authorization > Bearer Token** y pegarlo para las siguientes solicitudes.
 
-### 4. Consultar lotes
+### 7. Consultar lotes
 
 ```http
 GET http://localhost:3000/api/lotes
 Authorization: Bearer <TOKEN>
 ```
 
-### 5. Crear un lote
+### 8. Crear un lote
 
 ```http
 POST http://localhost:3000/api/lotes
@@ -647,7 +725,7 @@ Content-Type: application/json
 }
 ```
 
-### 6. Casos de error esperados
+### 9. Casos de error esperados
 
 | Caso | Resultado |
 | --- | --- |
@@ -683,10 +761,10 @@ existencia de productores, lotes, técnicos y tipos de cultivo.
 
 ## Despliegue
 
-La aplicación está desplegada en Vercel:
+La aplicación está desplegada en Render:
 
 ```text
-https://backend-entrega-final-eight.vercel.app/login
+https://backend-entrega-final-id4y.onrender.com/login
 ```
 
 El repositorio conectado al proyecto es:
@@ -695,40 +773,40 @@ El repositorio conectado al proyecto es:
 LeonelDiaz225/Backend-Entrega-Final
 ```
 
-El archivo `render.yaml` se conserva como configuración histórica para Render;
-no interviene en el deployment actual de Vercel.
+El archivo `render.yaml` contiene la configuración del servicio actual:
+comando de construcción `npm ci`, comando de inicio `npm start` y health check
+en `/health`.
 
-### Configuración de Vercel
+### Configuración de Render
 
-El archivo `index.js` funciona como entrypoint serverless. Conecta con
-MongoDB una vez por instancia y delega las solicitudes a `app.js`. El archivo
-`vercel.json` envía las rutas de la aplicación a ese entrypoint.
+En el servicio de Render configurar:
 
-En el proyecto de Vercel configurar:
-
-- **Framework Preset:** `Other`.
+- **Runtime:** Node.
 - **Build Command:** `npm ci`.
-- **Output Directory:** vacío.
-- **Root Directory:** `/`.
+- **Start Command:** `npm start`.
+- **Health Check Path:** `/health`.
 - Variables `NODE_ENV`, `MONGO_URI`, `MONGO_DB_NAME`, `JWT_SECRET`,
-  `JWT_EXPIRES_IN` y `MONGO_DNS_SERVERS` para **Production**.
+  `JWT_EXPIRES_IN` y, si es necesario, `MONGO_DNS_SERVERS`.
 
-Después de cambiar variables o código, generar un nuevo deployment. Verificar
-en los logs que el repositorio clonado sea el correcto y probar:
+Después de cambiar variables o código, generar un nuevo deploy. Verificar en
+los logs que el repositorio clonado sea el correcto y probar:
 
 ```text
-GET https://backend-entrega-final-eight.vercel.app/health
-GET https://backend-entrega-final-eight.vercel.app/api-docs
-GET https://backend-entrega-final-eight.vercel.app/login
+GET https://backend-entrega-final-id4y.onrender.com/health
+GET https://backend-entrega-final-id4y.onrender.com/api-docs
+GET https://backend-entrega-final-id4y.onrender.com/login
 ```
 
-Las migraciones y el seed se ejecutan manualmente contra MongoDB Atlas, no
-dentro de cada invocación serverless:
+Las migraciones y el seed se ejecutan manualmente contra MongoDB Atlas:
 
 ```powershell
 npm run migrate:up:prod
 npm run seed:prod
 ```
+
+`index.js` y `vercel.json` permanecen en el repositorio como configuración
+alternativa para un eventual despliegue en Vercel; no son utilizados por el
+servicio actual de Render.
 
 No colocar credenciales dentro del repositorio. Antes de desplegar verificar:
 
@@ -755,15 +833,15 @@ npm audit --omit=dev --audit-level=high
 | Autenticación | Implementado con JWT |
 | Autorización | Implementado por roles |
 | Variables de entorno | Implementado |
-| Pruebas automatizadas | Implementado con Jest y Supertest |
+| Pruebas automatizadas | Tests presentes; `auth.test.js` requiere aislamiento de MongoDB |
 | Documentación de API | Implementado con Swagger/OpenAPI |
-| Despliegue | Publicado en Vercel con MongoDB Atlas |
+| Despliegue | Publicado en Render con MongoDB Atlas |
 
 ## Mejoras futuras
 
 - Agregar pruebas de integración usando una base MongoDB de test.
-- Crear un usuario administrador mediante migración o comando seguro de
-  inicialización.
+- Completar el registro de usuarios desde la API para permitir asociaciones
+  `id_tecnico` e `id_productor`.
 - Convertir `Observacion.tipo_cultivo` en referencia `ObjectId` a
   `TipoCultivo`, en lugar de guardar el nombre como texto.
 - Agregar paginación y filtros avanzados.
