@@ -10,7 +10,7 @@ Express, MongoDB y Mongoose.
 | Recurso | Enlace |
 | --- | --- |
 | Repositorio | [GitHub](https://github.com/LeonelDiaz225/Backend-Entrega-Final.git) |
-| Aplicación desplegada | [AgroTec en Vercel](https://backend-entrega-final-eight.vercel.app/login) |
+| Aplicación desplegada | [AgroTec en Render](https://backend-entrega-final-id4y.onrender.com/login) |
 | Carpeta de documentación | [Google Drive](https://drive.google.com/drive/folders/15tbDKWcteGK1vAPrlIW_IRnS0gEkEigq?hl=es) |
 | Video de presentación | Completar |
 
